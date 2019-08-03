@@ -3,7 +3,7 @@ version: 2
 jobs:
     node-latest: &test
         docker:
-            - image: node:latest
+            - image: circleci/node:latest
         working_directory: ~/cli
         steps:
             - checkout
@@ -27,11 +27,11 @@ jobs:
     node-8:
         <<: *test
         docker:
-            - image: node:8
+            - image: circleci/node:8
     node-10:
         <<: *test
         docker:
-            - image: node:10
+            - image: circleci/node:10
     cache:
         <<: *test
         steps:
