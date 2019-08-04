@@ -28,6 +28,8 @@
 				},
 				"esSpecCompliant": true
 			}
-		]
+		],
+		"no-unused-vars": "off",
+		"no-console": "warn"
 	}
 }
