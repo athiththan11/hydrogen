@@ -1,6 +1,7 @@
 const { Command, flags } = require('@oclif/command');
+const { logger } = require('../utils/logger');
 
-// const { Postgres } = require('../services/datasources/postgres');
+const Postgres = require('../services/datasources/postgres');
 
 class AlterCommand extends Command {
 	async run() {
@@ -9,7 +10,11 @@ class AlterCommand extends Command {
 		const version = flags.version;
 		const datasource = flags.datasource;
 
-		this.log(`Starting to alter ${product}-${version} with ${datasource}`);
+		this.log(`starting to alter ${product}-${version} with ${datasource}`);
+
+		await Postgres.parseMasterDatasource().then(data => {
+			Postgres.alterMasterDatasource(data);
+		});
 	}
 }
 
