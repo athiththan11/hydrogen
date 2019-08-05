@@ -22,7 +22,7 @@ class AlterCommand extends Command {
 	}
 }
 
-AlterCommand.description = `Alter datasources of a carbon product
+AlterCommand.description = `alter wso2 products with different datasources
 ...
 Extra documentation goes here
 `;
@@ -30,7 +30,7 @@ Extra documentation goes here
 AlterCommand.flags = {
 	product: flags.string({
 		char: 'p',
-		description: 'specify the carbon product',
+		description: 'wso2 product',
 		hidden: false,
 		multiple: false,
 		default: 'is',
@@ -39,7 +39,7 @@ AlterCommand.flags = {
 	}),
 	version: flags.string({
 		char: 'v',
-		description: 'specified product version. supported versions are [is >= 5.7]',
+		description: 'product version. supported versions are [is >= 5.7]',
 		hidden: false,
 		multiple: false,
 		default: '5.7',
@@ -47,7 +47,7 @@ AlterCommand.flags = {
 	}),
 	datasource: flags.string({
 		char: 'd',
-		description: 'database vendor',
+		description: 'datasource type',
 		hidden: false,
 		multiple: false,
 		required: true,
