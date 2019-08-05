@@ -3,44 +3,42 @@ const libxmljs = require('libxmljs');
 const prettifyXml = require('prettify-xml');
 
 const { logger } = require('../../utils/logger');
+const { parseXML } = require('../../utils/utility');
 
 let _t = '\t\t';
 let _n = '\n\n';
+let _comment = 'HYDROGENERATED:';
+let _description = 'postgres datasource added';
+let _postgresCarbon = 'jdbc/WSO2PostgresCarbonDB';
 
 let pMasterDatasource =
 	process.cwd() + '/repository/conf/datasources/master-datasources.xml';
 let pIdentity = process.cwd() + '/repository/conf/identity/identity.xml';
 
 exports.configPostgres = async function (log, cli) {
-	await parseMasterDatasource(log).then(data => {
-		alterMasterDatasource(log, data).then(() => {
+	await parseXML(log, pMasterDatasource).then(master => {
+		alterMasterDatasource(log, master, pMasterDatasource).then(() => {
 			cli.action.stop();
-		});
-	});
+			cli.action.start('\taltering identity.xml');
 
-	cli.action.start('\taltering master-datasources.xml');
-	await parseIdentity(log).then(data => {
-		alterIdentity(log, data).then(() => {
-			cli.action.stop();
+			parseXML(log, pIdentity).then(identity => {
+				alterIdentity(log, identity, pIdentity).then(() => {
+					cli.action.stop();
+				});
+			});
 		});
 	});
 };
 
 // #region master-datasource parser
 
-async function parseMasterDatasource(log) {
-	let jsonData = fs.readFileSync(pMasterDatasource, 'utf8');
-	jsonData = libxmljs.parseXml(jsonData);
-
-	return jsonData;
-}
-
-async function alterMasterDatasource(log, data) {
+async function alterMasterDatasource(log, data, path) {
 	let doc = new libxmljs.Document(data);
 	let postgresElement = buildPostgresDatasource(doc);
+	let element = '<datasource><name>WSO2_POSTGRES';
 
 	data.root()
-		.get('//datasources/datasource')
+		.get('//*[local-name()="datasources"]/*[local-name()="datasource"]')
 		.addNextSibling(postgresElement);
 
 	// remove xml declaration
@@ -48,30 +46,23 @@ async function alterMasterDatasource(log, data) {
 
 	// extract postgres config
 	let arr = config
-		.substring(
-			config.lastIndexOf('<datasource><name>WSO2_POSTGRES'),
-			config.length
-		)
+		.substring(config.lastIndexOf(element), config.length)
 		.split('\n');
 	let postgres = arr[0];
 
 	arr.shift();
-	let leftOver = arr.join('\n');
 
 	let altered =
-		config.substring(
-			0,
-			config.lastIndexOf('<datasource><name>WSO2_POSTGRES')
-		) +
-		`${_n}${_t}<!-- HYDROGENERATED: postgres datasource added -->\n${_t}` +
+		config.substring(0, config.lastIndexOf(element)) +
+		`${_n}${_t}<!-- ${_comment} ${_description} -->\n${_t}` +
 		prettifyXml(postgres, { indent: 4, newline: '\n' }).replace(
 			/\n/g,
 			`\n${_t}`
 		) +
 		'\n' +
-		leftOver;
+		arr.join('\n');
 
-	fs.writeFileSync(pMasterDatasource, altered, 'utf8');
+	fs.writeFileSync(path, altered, 'utf8');
 }
 
 function buildPostgresDatasource(doc) {
@@ -85,7 +76,7 @@ function buildPostgresDatasource(doc) {
 		)
 		.parent()
 		.node('jndiConfig')
-		.node('name', 'jdbc/WSO2PostgresCarbonDB')
+		.node('name', _postgresCarbon)
 		.parent()
 		.parent()
 		.node('definition')
@@ -120,44 +111,34 @@ function buildPostgresDatasource(doc) {
 
 // #region identity
 
-async function parseIdentity(log) {
-	let jsonData = fs.readFileSync(pIdentity, 'utf8');
-	jsonData = libxmljs.parseXml(jsonData);
-
-	return jsonData;
-}
-
-async function alterIdentity(log, data) {
+async function alterIdentity(log, data, path) {
 	let doc = new libxmljs.Document(data);
 	let postgresElement = buildIdentity(doc);
+	let element = `<Name>${_postgresCarbon}`;
 
 	data.root()
-		.get('//*[local-name()="JDBCPersistenceManager"]/*[local-name()="DataSource"]/*[local-name()="Name"]')
+		.get(
+			'//*[local-name()="JDBCPersistenceManager"]/*[local-name()="DataSource"]/*[local-name()="Name"]'
+		)
 		.replace(postgresElement);
 
 	let config = data.toString();
 
+	// replace utf encoding with latin1
+	config = config.replace('encoding="UTF-8"', 'encoding="ISO-8859-1"');
+
 	// extract postgres config
 	let altered =
-		config.substring(
-			0,
-			config.lastIndexOf('<Name>jdbc/WSO2PostgresCarbonDB')
-		) +
-		`\n${_t}\t<!-- HYDROGENERATED: postgres datasource added. changed jdbc/WSO2CarbonDB -->\n${_t}\t` +
-		config.substring(
-			config.lastIndexOf('<Name>jdbc/WSO2PostgresCarbonDB')
-		) +
+		config.substring(0, config.lastIndexOf(element)) +
+		`\n${_t}\t<!-- ${_comment} ${_description}. changed jdbc/WSO2CarbonDB -->\n${_t}\t` +
+		config.substring(config.lastIndexOf(element)) +
 		'\n\n';
 
-	fs.writeFileSync(pIdentity, altered, 'utf8');
+	fs.writeFileSync(path, altered, 'latin1');
 }
 
 function buildIdentity(doc) {
-	let postgresElement = new libxmljs.Element(
-		doc,
-		'Name',
-		'jdbc/WSO2PostgresCarbonDB'
-	);
+	let postgresElement = new libxmljs.Element(doc, 'Name', _postgresCarbon);
 
 	return postgresElement;
 }
