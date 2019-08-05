@@ -1,4 +1,5 @@
 const { Command, flags } = require('@oclif/command');
+const { cli } = require('cli-ux');
 const { logger } = require('../utils/logger');
 
 const Postgres = require('../services/datasources/postgres');
@@ -10,11 +11,10 @@ class AlterCommand extends Command {
 		const version = flags.version;
 		const datasource = flags.datasource;
 
-		this.log(`starting to alter ${product}-${version} with ${datasource}`);
+		this.log(`altering ${product}-${version} with ${datasource} configurations`);
 
-		await Postgres.parseMasterDatasource().then(data => {
-			Postgres.alterMasterDatasource(data);
-		});
+		cli.action.start('\taltering master-datasources.xml');
+		await Postgres.configPostgres(this.log, cli);
 	}
 }
 

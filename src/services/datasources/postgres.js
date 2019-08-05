@@ -4,16 +4,27 @@ const prettifyXml = require('prettify-xml');
 
 const { logger } = require('../../utils/logger');
 
-let path = process.cwd() + '/wso2is-5.7.0/repository/conf/datasources/master-datasources.xml';
+let pMasterDatasource =
+	process.cwd() + '/repository/conf/datasources/master-datasources.xml';
 
-exports.parseMasterDatasource = async function () {
-	let jsonData = fs.readFileSync(path, 'utf8');
+exports.configPostgres = async function (log, cli) {
+	await parseMasterDatasource(log).then(data => {
+		alterMasterDatasource(log, data).then(() => {
+			cli.action.stop();
+		});
+	});
+};
+
+// #region master-datasource parser
+
+async function parseMasterDatasource(log) {
+	let jsonData = fs.readFileSync(pMasterDatasource, 'utf8');
 	jsonData = libxmljs.parseXml(jsonData);
 
 	return jsonData;
-};
+}
 
-exports.alterMasterDatasource = async function (data) {
+async function alterMasterDatasource(log, data) {
 	let doc = new libxmljs.Document(data);
 	let postgresElement = buildPostgresDatasource(doc);
 
@@ -25,26 +36,31 @@ exports.alterMasterDatasource = async function (data) {
 	let config = removeDeclaration(data.toString());
 
 	// extract postgres config
-	let arr = config.substring(config.lastIndexOf('<datasource><name>WSO2_POSTGRES'), config.length).split('\n');
+	let arr = config
+		.substring(
+			config.lastIndexOf('<datasource><name>WSO2_POSTGRES'),
+			config.length
+		)
+		.split('\n');
 	let postgres = arr[0];
 
 	arr.shift();
 	let leftOver = arr.join('\n');
 
 	let altered =
-		config.substring(0, config.lastIndexOf('<datasource><name>WSO2_POSTGRES')) +
+		config.substring(
+			0,
+			config.lastIndexOf('<datasource><name>WSO2_POSTGRES')
+		) +
 		'\n\n\t\t<!-- HYDROGENERATED: postgres datasource added -->\n\t\t' +
-		prettifyXml(postgres, { indent: 4, newline: '\n' }).replace(/\n/g, '\n\t\t') +
+		prettifyXml(postgres, { indent: 4, newline: '\n' }).replace(
+			/\n/g,
+			'\n\t\t'
+		) +
 		'\n' +
 		leftOver;
 
-	logger.info(prettifyXml(altered, { indent: 4, newline: '\n' }));
-
-	fs.writeFileSync(path, altered, 'utf8');
-};
-
-function removeDeclaration(xml) {
-	return xml.split('<?xml version="1.0" encoding="UTF-8"?>\n')[1];
+	fs.writeFileSync(pMasterDatasource, altered, 'utf8');
 }
 
 function buildPostgresDatasource(doc) {
@@ -52,7 +68,10 @@ function buildPostgresDatasource(doc) {
 	postgresElement
 		.node('name', 'WSO2_POSTGRES_CARBON_DB')
 		.parent()
-		.node('description', 'The datasource used for registry and user manager')
+		.node(
+			'description',
+			'The datasource used for registry and user manager'
+		)
 		.parent()
 		.node('jndiConfig')
 		.node('name', 'jdbc/WSO2PostgresCarbonDB')
@@ -84,4 +103,10 @@ function buildPostgresDatasource(doc) {
 		.node('defaultAutoCommit', 'true');
 
 	return postgresElement;
+}
+
+// #endregion
+
+function removeDeclaration(xml) {
+	return xml.split('<?xml version="1.0" encoding="UTF-8"?>\n')[1];
 }
