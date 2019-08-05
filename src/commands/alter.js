@@ -4,6 +4,7 @@ const { logger } = require('../utils/logger');
 
 const Postgres = require('../services/datasources/postgres');
 const MySQL = require('../services/datasources/mysql');
+const Oracle = require('../services/datasources/oracle');
 
 class AlterCommand extends Command {
 	async run() {
@@ -16,9 +17,12 @@ class AlterCommand extends Command {
 
 		cli.action.start('\taltering master-datasources.xml');
 		if (datasource === 'postgres')
-			await Postgres.configPostgres(this.log, cli);
+			await Postgres.configure(this.log, cli);
 		else if (datasource === 'mysql')
-			await MySQL.configMySQL(this.log, cli);
+			await MySQL.configure(this.log, cli);
+		else if (datasource === 'oracle') {
+			await Oracle.configure(this.log, cli);
+		}
 	}
 }
 
@@ -52,7 +56,7 @@ AlterCommand.flags = {
 		multiple: false,
 		required: true,
 		default: 'mysql',
-		options: ['postgres', 'mysql'],
+		options: ['postgres', 'mysql', 'oracle'],
 	}),
 };
 
