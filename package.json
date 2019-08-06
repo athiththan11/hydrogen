@@ -12,6 +12,7 @@
 		"@oclif/config": "1.13.2",
 		"@oclif/plugin-help": "2.2.0",
 		"cli-ux": "5.3.1",
+		"fs-extra": "8.1.0",
 		"libxmljs": "0.19.5",
 		"listr": "0.14.3",
 		"prettify-xml": "1.2.0"
