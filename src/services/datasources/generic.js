@@ -10,36 +10,47 @@ let pMasterDatasource =
 let pIdentity = process.cwd() + '/repository/conf/identity/identity.xml';
 
 let _ = 'Generic';
-let _t = '\t\t';
-let _n = '\n\n';
-let _comment = 'HYDROGENERATED:';
-let _description = _.toLowerCase() + ' datasource added';
 let _carbon = 'jdbc/WSO2' + _ + 'CarbonDB';
+let _comment = 'HYDROGENERATED:';
 let _connectionUrl = '{specify connection url}';
-let _username = _.toLowerCase();
-let _driver = '{specify jdbc driver}';
-let _validationQuery = 'SELECT 1';
 let _defaultAutoCommit = 'false';
+let _description = _.toLowerCase() + ' datasource added';
+let _driver = '{specify jdbc driver}';
+let _maxActive = '80';
+let _maxWait = '60000';
+let _minIdle = '5';
+let _n = '\n\n';
+let _t = '\t\t';
+let _testOnBorrow = 'true';
+let _username = _.toLowerCase();
+let _validationInterval = '30000';
+let _validationQuery = 'SELECT 1';
 
 exports.configureDatasource = async function (log, cli, args) {
 	// variable set
 	_ = args._ ? args._ : _;
 
-	_description = _.toLowerCase() + ' datasource added';
 	_carbon = 'jdbc/WSO2' + _ + 'CarbonDB';
+	_description = _.toLowerCase() + ' datasource added';
 	_username = _.toLowerCase();
 
-	_t = args._t ? args._t : _t;
-	_n = args._n ? args._n : _n;
-	_comment = args._comment ? args._comment : _comment;
-	_description = args._description ? args._description : _description;
 	_carbon = args._carbon ? args._carbon : _carbon;
+	_comment = args._comment ? args._comment : _comment;
 	_connectionUrl = args._connectionUrl ? args._connectionUrl : _connectionUrl;
-	_username = args._username ? args._username : _username;
-	_driver = args._driver ? args._driver : _driver;
-	_validationQuery = args._validationQuery ? args._validationQuery : _validationQuery;
 	_defaultAutoCommit = args._defaultAutoCommit ? args._defaultAutoCommit : _defaultAutoCommit;
+	_description = args._description ? args._description : _description;
+	_driver = args._driver ? args._driver : _driver;
+	_maxActive = args._maxActive ? args._maxActive : _maxActive;
+	_maxWait = args._maxWait ? args._maxWait : _maxWait;
+	_minIdle = args._minIdle ? args._minIdle : _minIdle;
+	_n = args._n ? args._n : _n;
+	_t = args._t ? args._t : _t;
+	_testOnBorrow = args._testOnBorrow ? args._testOnBorrow : _testOnBorrow;
+	_username = args._username ? args._username : _username;
+	_validationInterval = args._validationInterval ? args._validationInterval : _validationInterval;
+	_validationQuery = args._validationQuery ? args._validationQuery : _validationQuery;
 
+	cli.action.start('\taltering master-datasources.xml');
 	await parseXML(log, pMasterDatasource).then(master => {
 		alterMasterDatasource(log, master, pMasterDatasource).then(() => {
 			cli.action.stop();
@@ -114,17 +125,17 @@ function buildOracleDatasource(doc) {
 		.parent()
 		.node('driverClassName', _driver)
 		.parent()
-		.node('maxActive', '80')
+		.node('maxActive', _maxActive)
 		.parent()
-		.node('maxWait', '60000')
+		.node('maxWait', _maxWait)
 		.parent()
-		.node('minIdle', '5')
+		.node('minIdle', _minIdle)
 		.parent()
-		.node('testOnBorrow', 'true')
+		.node('testOnBorrow', _testOnBorrow)
 		.parent()
 		.node('validationQuery', _validationQuery)
 		.parent()
-		.node('validationInterval', '30000')
+		.node('validationInterval', _validationInterval)
 		.parent()
 		.node('defaultAutoCommit', _defaultAutoCommit);
 

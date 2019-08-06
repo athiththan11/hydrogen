@@ -15,7 +15,6 @@ class AlterCommand extends Command {
 
 		this.log(`starting to alter ${product}-${version} with ${datasource} configurations`);
 
-		cli.action.start('\taltering master-datasources.xml');
 		if (datasource === 'postgres')
 			await Postgres.configure(this.log, cli);
 		else if (datasource === 'mysql')
