@@ -2,6 +2,7 @@ const fs = require('fs-extra');
 const path = require('path');
 const libxmljs = require('libxmljs');
 const prettify = require('prettify-xml');
+const { cli } = require('cli-ux');
 
 const { logger } = require('../../utils/logger');
 const { parseXML, removeDeclaration } = require('../../utils/utility');
@@ -17,11 +18,11 @@ let _c = {
 		'gatewaytwo',
 	],
 	distributed: [
-		'keymanager',
-		'trafficmanager',
 		'gateway',
-		'store',
+		'keymanager',
 		'publisher',
+		'store',
+		'trafficmanager',
 	],
 };
 let _comment = 'HYDROGENERATED:';
@@ -30,12 +31,16 @@ let _n = '\n\n';
 let _t = '\t\t';
 let _utf8 = 'utf8';
 
-exports.configure = async function (log, cli, args) {
+exports.configure = async function (log, args) {
 	if (args['multiple-gateway'])
-		configureMultipleGateway(log, cli);
+		configureMultipleGateway(log);
+	else if (args.distributed)
+		configureDistributedDeployment(log);
 };
 
-function configureMultipleGateway(log, cli) {
+// #region publish multiple gateway configurations
+
+async function configureMultipleGateway(log) {
 	// clean .DS_Store in mac filesystem
 	if (fs.existsSync(path.join(_p, '.DS_Store'))) {
 		fs.removeSync(path.join(_p, '.DS_Store'));
@@ -44,22 +49,17 @@ function configureMultipleGateway(log, cli) {
 	if (fs.readdirSync(_p).length === 1) {
 		fs.readdirSync(_p).forEach(d => {
 			if (d.startsWith('wso2')) {
-				cli.action.start(`creating folder for ${_distributed} configurations`);
-
 				let pDistributed = path.join(_p, _distributed);
-
 				// create folder named 'ditributed'
 				fs.mkdirSync(pDistributed);
-				cli.action.stop();
 
 				let source = path.join(_p, d);
 				let _count = 0;
 
 				_c['multiple-gateway'].sort().forEach(name => {
-					cli.action.start(`copying ${d} as ${name}`);
+					cli.action.start(`\tconfiguring ${d} as ${name}`);
 					fs.copySync(source, path.join(pDistributed, name));
 
-					cli.action.start(`configuring ${name}`);
 					if (name.startsWith('gateway')) {
 						configureMGW(path.join(pDistributed, name), ++_count);
 					} else {
@@ -237,3 +237,35 @@ async function configureMGWCarbon(p, _count) {
 		fs.writeFileSync(path.join(p, pCarbon), _altered, _utf8);
 	});
 }
+
+// #endregion
+
+// #region distributed deployment 5 nodes
+
+function configureDistributedDeployment(log) {
+	// clean .DS_Store in mac filesystem
+	if (fs.existsSync(path.join(_p, '.DS_Store'))) {
+		fs.removeSync(path.join(_p, '.DS_Store'));
+	}
+
+	if (fs.readdirSync(_p).length === 1) {
+		fs.readdirSync(_p).forEach(d => {
+			if (d.startsWith('wso2')) {
+				let pDistributed = path.join(_p, _distributed);
+				// create folder named 'ditributed'
+				fs.mkdirSync(pDistributed);
+
+				let source = path.join(_p, d);
+				let _count = 0;
+
+				_c.distributed.sort().forEach(name => {
+					cli.action.start(`\t\tconfiguring ${d} as ${name}`);
+					fs.copySync(source, path.join(pDistributed, name));
+					cli.action.stop();
+				});
+			}
+		});
+	}
+}
+
+// #endregion
