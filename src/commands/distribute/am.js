@@ -1,6 +1,5 @@
 const { Command, flags } = require('@oclif/command');
 const { cli } = require('cli-ux');
-const ora = require('ora');
 const { logger } = require('../../utils/logger');
 
 const Generic = require('../../services/distributed/generic');
