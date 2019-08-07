@@ -10,9 +10,10 @@ class DistributeCommand extends Command {
 		const product = flags.product;
 		const version = flags.version;
 		const datasource = flags.datasource;
+		// const mulitpleGW = flags['multiple-gatway'];
 
 		this.log(`starting to configure ${product}-${version} with ${datasource} for distributed deployment`);
-		await Generic.configure();
+		await Generic.configure(this.log, cli);
 	}
 }
 
@@ -21,9 +22,7 @@ DistributeCommand.description = `configure wso2 products for distributed deploym
 Extra documentation goes here
 `;
 
-DistributeCommand.examples = [
-	'$ hydrogen distributed --replace -d postgres -p is -v 5.7',
-];
+DistributeCommand.examples = ['$ hydrogen distribute -p am -v 2.6 -d postgres'];
 
 DistributeCommand.flags = {
 	product: flags.string({
@@ -49,6 +48,13 @@ DistributeCommand.flags = {
 		multiple: false,
 		required: true,
 		options: ['postgres', 'mysql', 'oracle'],
+	}),
+	'multiple-gatway': flags.boolean({
+		char: 'm',
+		description: 'publish through multiple gateway',
+		hidden: false,
+		multiple: false,
+		required: false,
 	}),
 };
 
