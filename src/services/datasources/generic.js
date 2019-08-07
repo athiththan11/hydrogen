@@ -23,6 +23,7 @@ let _n = '\n\n';
 let _t = '\t\t';
 let _testOnBorrow = 'true';
 let _username = _.toLowerCase();
+let _utf8 = 'utf8';
 let _validationInterval = '30000';
 let _validationQuery = 'SELECT 1';
 
@@ -97,7 +98,7 @@ async function alterMasterDatasource(log, data, path) {
 		'\n' +
 		arr.join('\n');
 
-	fs.writeFileSync(path, altered, 'utf8');
+	fs.writeFileSync(path, altered, _utf8);
 }
 
 function buildGenericDatasource(doc) {
