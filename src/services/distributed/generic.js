@@ -1,7 +1,7 @@
 const fs = require('fs-extra');
 const path = require('path');
 const libxmljs = require('libxmljs');
-const prettifyXml = require('prettify-xml');
+const prettify = require('prettify-xml');
 
 const { logger } = require('../../utils/logger');
 const { parseXML, removeDeclaration } = require('../../utils/utility');
@@ -24,8 +24,18 @@ let _c = {
 		'publisher',
 	],
 };
+let _comment = 'HYDROGENERATED:';
+let _distributed = 'distributed';
+let _n = '\n\n';
+let _t = '\t\t';
+let _utf8 = 'utf8';
 
-exports.configure = async function (log, cli) {
+exports.configure = async function (log, cli, args) {
+	if (args['multiple-gateway'])
+		configureMultipleGateway(log, cli);
+};
+
+function configureMultipleGateway(log, cli) {
 	// clean .DS_Store in mac filesystem
 	if (fs.existsSync(path.join(_p, '.DS_Store'))) {
 		fs.removeSync(path.join(_p, '.DS_Store'));
@@ -34,38 +44,95 @@ exports.configure = async function (log, cli) {
 	if (fs.readdirSync(_p).length === 1) {
 		fs.readdirSync(_p).forEach(d => {
 			if (d.startsWith('wso2')) {
-				let _distributed = 'distributed';
 				cli.action.start(`creating folder for ${_distributed} configurations`);
+
+				let pDistributed = path.join(_p, _distributed);
+
 				// create folder named 'ditributed'
-				fs.mkdirSync(path.join(_p, _distributed));
+				fs.mkdirSync(pDistributed);
 				cli.action.stop();
 
 				let source = path.join(_p, d);
 				let _count = 0;
 
-				// FIXME: options
 				_c['multiple-gateway'].sort().forEach(name => {
 					cli.action.start(`copying ${d} as ${name}`);
-					fs.copySync(source, path.join(_p, _distributed, name));
+					fs.copySync(source, path.join(pDistributed, name));
 
+					cli.action.start(`configuring ${name}`);
 					if (name.startsWith('gateway')) {
-						cli.action.start(`configuring ${name}`);
-						configureMGW(path.join(_p, _distributed, name), ++_count);
-						cli.action.stop();
+						configureMGW(path.join(pDistributed, name), ++_count);
+					} else {
+						configureMGWAIO(path.join(pDistributed, name));
 					}
 					cli.action.stop();
 				});
 			}
 		});
 	}
-};
-
-function configureMultipleGateway() {
-
 }
 
-function configureMGWAIO() {
+async function configureMGWAIO(p) {
+	await parseXML(null, path.join(p, pApiManager)).then(apim => {
+		let doc = new libxmljs.Document(apim);
 
+		// environment node creation
+		let envProdNode = buildEnvironmentNode(doc, 'production', 'Production Gateway', 'Production Gateway Environment', 0);
+		let envHybNode = buildEnvironmentNode(doc, 'hybrid', 'Production and Sandbox', 'Hybrid Gateway Environment', 1);
+
+		let defaultElement = apim.root()
+			.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]/*[local-name()="Environment"]')
+			.remove();
+
+		let alteredDefault = defaultElement.toString().split('\n');
+		let altered = '';
+		alteredDefault.forEach(a => {
+			if (a.includes('<!--')) {
+				altered += a + '\n';
+			} else {
+				altered += '<!-- ' + a.trim() + ' -->\n';
+			}
+		});
+
+		apim.root()
+			.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]')
+			.addChild(envProdNode).addChild(envHybNode);
+
+		let _altered = removeDeclaration(apim.toString());
+		let envsElement = _altered.substring(_altered.indexOf('<Environments>'), _altered.indexOf('</Environments>'));
+
+		envsElement = envsElement.substring(0, envsElement.indexOf('<Environment ')) +
+			prettify(altered) +
+			`${_n}${_t}<!-- ${_comment} environments added -->\n${_t}` +
+			prettify(envsElement.substring(envsElement.indexOf('<Environment '), envsElement.lastIndexOf('<Environment '))) +
+			'\n\n' +
+			prettify(envsElement.substring(envsElement.lastIndexOf('<Environment '), envsElement.length));
+
+		_altered = _altered.substring(0, _altered.indexOf('<Environments>')) +
+			envsElement +
+			_n +
+			_altered.substring(_altered.indexOf('</Environments>'), _altered.length);
+
+		fs.writeFileSync(path.join(p, pApiManager), prettify(_altered) + '\n', _utf8);
+	});
+}
+
+// eslint-disable-next-line max-params
+function buildEnvironmentNode(doc, type, name, description, c) {
+	let environmentNode = new libxmljs.Element(doc, 'Environment').attr({ type: type, 'api-console': 'true' });
+	environmentNode
+		.node('Name', name)
+		.parent()
+		.node('Description', description)
+		.parent()
+		.node('ServerURL', `https://localhost:${9444 + c}/services/`)
+		.parent()
+		.node('Username', 'admin')
+		.parent()
+		.node('Password', 'admin')
+		.parent()
+		.node('GatewayEndpoint', `http://localhost:${8281 + c},https://localhost:${8244 + c}`);
+	return environmentNode;
 }
 
 async function configureMGW(p, _count) {
@@ -111,23 +178,23 @@ async function configureMGW(p, _count) {
 		let firstAlter = authManager.substring(0, authManager.indexOf('<ServerURL>')) +
 			'<!-- ' +
 			authManager.substring(authManager.indexOf('<ServerURL>'), authManager.lastIndexOf('<ServerURL>')) +
-			' -->\n\n' +
-			'\t\t<!-- HYDROGENERATED: server url changed -->\n\t\t' +
+			` -->${_n}` +
+			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
 			authManager.substring(authManager.lastIndexOf('<ServerURL>'), authManager.length);
 
 		let secondAlter = apiKeyValidator.substring(0, apiKeyValidator.indexOf('<ServerURL>')) +
 			'<!-- ' +
 			apiKeyValidator.substring(apiKeyValidator.indexOf('<ServerURL>'), apiKeyValidator.lastIndexOf('<ServerURL>')) +
-			' -->\n\n' +
-			'\t\t<!-- HYDROGENERATED: server url has been changed -->\n\t\t' +
+			` -->${_n}` +
+			`${_t}<!-- ${_comment} server url has been changed -->\n${_t}` +
 			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<ServerURL>'), apiKeyValidator.indexOf('<ThriftClientPort>')) +
-			'\n\n' +
-			'\t\t<!-- HYDROGENERATED: thrift client port has been set -->\n\t\t' +
+			`${_n}` +
+			`${_t}<!-- ${_comment} thrift client port has been set -->\n${_t}` +
 			apiKeyValidator.substring(apiKeyValidator.indexOf('<ThriftClientPort>'), apiKeyValidator.indexOf('<EnableThriftServer>')) +
 			'<!-- ' +
 			apiKeyValidator.substring(apiKeyValidator.indexOf('<EnableThriftServer>'), apiKeyValidator.lastIndexOf('<EnableThriftServer>')) +
-			' -->\n\n' +
-			'\t\t<!-- HYDROGENERATED: thrift server has been disabled -->\n\t\t' +
+			` -->${_n}` +
+			`${_t}<!-- ${_comment} thrift server has been disabled -->\n${_t}` +
 			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<EnableThriftServer>'), apiKeyValidator.length);
 
 		// altered.substring(0, altered.lastIndexOf('<APIKeyValidator>')) +
@@ -138,11 +205,11 @@ async function configureMGW(p, _count) {
 			altered.substring(altered.lastIndexOf('</APIKeyValidator>'), altered.indexOf('<RevokeAPIURL>')) +
 			'<!-- ' +
 			altered.substring(altered.indexOf('<RevokeAPIURL>'), altered.lastIndexOf('<RevokeAPIURL>')) +
-			' -->\n\n' +
-			'\t\t<!-- HYDROGENERATED: revoke api changed -->\n\t\t' +
+			` -->${_n}` +
+			`${_t}<!-- ${_comment}: revoke api changed -->\n${_t}` +
 			altered.substring(altered.lastIndexOf('<RevokeAPIURL>'), altered.length);
 
-		fs.writeFileSync(path.join(p, pApiManager), _altered, 'utf8');
+		fs.writeFileSync(path.join(p, pApiManager), _altered, _utf8);
 	}).then(() => {
 		configureMGWCarbon(p, _count);
 	});
@@ -163,10 +230,10 @@ async function configureMGWCarbon(p, _count) {
 		_altered = _altered.substring(0, _altered.indexOf('<Offset>')) +
 			'<!-- ' +
 			_altered.substring(_altered.indexOf('<Offset>'), _altered.lastIndexOf('<Offset>')) +
-			' -->\n\n' +
-			`\t\t<!-- HYDROGENERATED: port offset ${_count} -->\n\t\t` +
+			` -->${_n}` +
+			`${_t}<!-- ${_comment} port offset ${_count} -->\n${_t}` +
 			_altered.substring(_altered.lastIndexOf('<Offset>'), _altered.length);
 
-		fs.writeFileSync(path.join(p, pCarbon), _altered, 'utf8');
+		fs.writeFileSync(path.join(p, pCarbon), _altered, _utf8);
 	});
 }

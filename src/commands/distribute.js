@@ -10,10 +10,13 @@ class DistributeCommand extends Command {
 		const product = flags.product;
 		const version = flags.version;
 		const datasource = flags.datasource;
-		// const mulitpleGW = flags['multiple-gatway'];
+
+		const mulitpleGW = flags['multiple-gatway'];
 
 		this.log(`starting to configure ${product}-${version} with ${datasource} for distributed deployment`);
-		await Generic.configure(this.log, cli);
+
+		if (mulitpleGW)
+			await Generic.configure(this.log, cli, { 'multiple-gateway': true });
 	}
 }
 
