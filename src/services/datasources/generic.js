@@ -1,6 +1,7 @@
 const fs = require('fs');
 const libxmljs = require('libxmljs');
 const prettifyXml = require('prettify-xml');
+const { cli } = require('cli-ux');
 
 const { logger } = require('../../utils/logger');
 const { parseXML, removeDeclaration } = require('../../utils/utility');
@@ -27,7 +28,7 @@ let _utf8 = 'utf8';
 let _validationInterval = '30000';
 let _validationQuery = 'SELECT 1';
 
-exports.configureDatasource = async function (log, cli, args) {
+exports.configureDatasource = async function (log, args) {
 	// variable set
 	_ = args._ ? args._ : _;
 

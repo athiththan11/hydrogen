@@ -1,5 +1,4 @@
 const { Command, flags } = require('@oclif/command');
-const { cli } = require('cli-ux');
 const { logger } = require('../utils/logger');
 
 const Postgres = require('../services/datasources/postgres');
@@ -18,11 +17,11 @@ class DatasourceCommand extends Command {
 			this.log(`starting to alter ${product}-${version} with ${datasource} configurations`);
 
 			if (datasource === 'postgres')
-				await Postgres.configure(this.log, cli);
+				await Postgres.configure(this.log);
 			else if (datasource === 'mysql')
-				await MySQL.configure(this.log, cli);
+				await MySQL.configure(this.log);
 			else if (datasource === 'oracle') {
-				await Oracle.configure(this.log, cli);
+				await Oracle.configure(this.log);
 			}
 		}
 	}
