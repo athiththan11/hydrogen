@@ -7,3 +7,7 @@ exports.parseXML = async function (log, path) {
 
 	return jsonData;
 };
+
+exports.removeDeclaration = function (xml) {
+	return xml.split('<?xml version="1.0" encoding="UTF-8"?>\n')[1];
+};

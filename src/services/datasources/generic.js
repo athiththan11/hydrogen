@@ -3,7 +3,7 @@ const libxmljs = require('libxmljs');
 const prettifyXml = require('prettify-xml');
 
 const { logger } = require('../../utils/logger');
-const { parseXML } = require('../../utils/utility');
+const { parseXML, removeDeclaration } = require('../../utils/utility');
 
 let pMasterDatasource =
 	process.cwd() + '/repository/conf/datasources/master-datasources.xml';
@@ -69,28 +69,28 @@ exports.configureDatasource = async function (log, cli, args) {
 
 async function alterMasterDatasource(log, data, path) {
 	let doc = new libxmljs.Document(data);
-	let oracleElement = buildOracleDatasource(doc);
+	let genericElement = buildGenericDatasource(doc);
 	let element = '<datasource><name>WSO2_' + _.toUpperCase();
 
 	data.root()
 		.get('//*[local-name()="datasources"]/*[local-name()="datasource"]')
-		.addNextSibling(oracleElement);
+		.addNextSibling(genericElement);
 
 	// remove xml declaration
 	let config = removeDeclaration(data.toString());
 
-	// extract oracle config
+	// extract generic config
 	let arr = config
 		.substring(config.lastIndexOf(element), config.length)
 		.split('\n');
-	let oracle = arr[0];
+	let generic = arr[0];
 
 	arr.shift();
 
 	let altered =
 		config.substring(0, config.lastIndexOf(element)) +
 		`${_n}${_t}<!-- ${_comment} ${_description} -->\n${_t}` +
-		prettifyXml(oracle, { indent: 4, newline: '\n' }).replace(
+		prettifyXml(generic, { indent: 4, newline: '\n' }).replace(
 			/\n/g,
 			`\n${_t}`
 		) +
@@ -100,9 +100,9 @@ async function alterMasterDatasource(log, data, path) {
 	fs.writeFileSync(path, altered, 'utf8');
 }
 
-function buildOracleDatasource(doc) {
-	let oracleElement = new libxmljs.Element(doc, 'datasource');
-	oracleElement
+function buildGenericDatasource(doc) {
+	let genericElement = new libxmljs.Element(doc, 'datasource');
+	genericElement
 		.node('name', `WSO2_${_.toUpperCase()}_CARBON_DB`)
 		.parent()
 		.node(
@@ -139,7 +139,7 @@ function buildOracleDatasource(doc) {
 		.parent()
 		.node('defaultAutoCommit', _defaultAutoCommit);
 
-	return oracleElement;
+	return genericElement;
 }
 
 // #endregion
@@ -148,21 +148,21 @@ function buildOracleDatasource(doc) {
 
 async function alterIdentity(log, data, path) {
 	let doc = new libxmljs.Document(data);
-	let oracleElement = buildIdentity(doc);
+	let genericElement = buildIdentity(doc);
 	let element = `<Name>${_carbon}`;
 
 	data.root()
 		.get(
 			'//*[local-name()="JDBCPersistenceManager"]/*[local-name()="DataSource"]/*[local-name()="Name"]'
 		)
-		.replace(oracleElement);
+		.replace(genericElement);
 
 	let config = data.toString();
 
 	// replace utf encoding with latin1
 	config = config.replace('encoding="UTF-8"', 'encoding="ISO-8859-1"');
 
-	// extract oracle config
+	// extract generic config
 	let altered =
 		config.substring(0, config.lastIndexOf(element)) +
 		`\n${_t}\t<!-- ${_comment} ${_description}. changed jdbc/WSO2CarbonDB -->\n${_t}\t` +
@@ -177,7 +177,3 @@ function buildIdentity(doc) {
 }
 
 // #endregion
-
-function removeDeclaration(xml) {
-	return xml.split('<?xml version="1.0" encoding="UTF-8"?>\n')[1];
-}
