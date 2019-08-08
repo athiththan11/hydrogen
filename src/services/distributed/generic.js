@@ -195,19 +195,15 @@ async function configureMGW(p, _count) {
 		let authManager = altered.substring(altered.indexOf('<AuthManager>'), altered.indexOf('</AuthManager>'));
 		let apiKeyValidator = altered.substring(altered.lastIndexOf('<APIKeyValidator>'), altered.lastIndexOf('</APIKeyValidator>'));
 
-		let firstAlter = alterElement(authManager, 'ServerURL');
+		let firstAlter = alterElement(authManager, 'ServerURL', 'server url changed ');
 		let secondAlter = apiKeyValidator.substring(0, apiKeyValidator.indexOf('<ServerURL>')) +
-			'<!-- ' +
-			apiKeyValidator.substring(apiKeyValidator.indexOf('<ServerURL>'), apiKeyValidator.lastIndexOf('<ServerURL>')) +
-			` -->${_n}` +
+			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<ServerURL>'), apiKeyValidator.lastIndexOf('<ServerURL>'))) +
 			`${_t}<!-- ${_comment} server url has been changed -->\n${_t}` +
 			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<ServerURL>'), apiKeyValidator.indexOf('<ThriftClientPort>')) +
 			`${_n}` +
 			`${_t}<!-- ${_comment} thrift client port has been set -->\n${_t}` +
 			apiKeyValidator.substring(apiKeyValidator.indexOf('<ThriftClientPort>'), apiKeyValidator.indexOf('<EnableThriftServer>')) +
-			'<!-- ' +
-			apiKeyValidator.substring(apiKeyValidator.indexOf('<EnableThriftServer>'), apiKeyValidator.lastIndexOf('<EnableThriftServer>')) +
-			` -->${_n}` +
+			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<EnableThriftServer>'), apiKeyValidator.lastIndexOf('<EnableThriftServer>'))) +
 			`${_t}<!-- ${_comment} thrift server has been disabled -->\n${_t}` +
 			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<EnableThriftServer>'), apiKeyValidator.length);
 
@@ -217,9 +213,7 @@ async function configureMGW(p, _count) {
 			altered.substring(altered.indexOf('</AuthManager>'), altered.lastIndexOf('<APIKeyValidator>')) +
 			secondAlter +
 			altered.substring(altered.lastIndexOf('</APIKeyValidator>'), altered.indexOf('<RevokeAPIURL>')) +
-			'<!-- ' +
-			altered.substring(altered.indexOf('<RevokeAPIURL>'), altered.lastIndexOf('<RevokeAPIURL>')) +
-			` -->${_n}` +
+			commentElement(altered.substring(altered.indexOf('<RevokeAPIURL>'), altered.lastIndexOf('<RevokeAPIURL>'))) +
 			`${_t}<!-- ${_comment}: revoke api changed -->\n${_t}` +
 			altered.substring(altered.lastIndexOf('<RevokeAPIURL>'), altered.length);
 
@@ -315,24 +309,20 @@ async function configureDKManager(p, _count) {
 		let altered = removeDeclaration(apim.toString());
 
 		let environments = altered.substring(altered.indexOf('<Environments>'), altered.indexOf('</Environments>'));
-		let firstAlter = alterElement(environments, 'ServerURL');
+		let firstAlter = alterElement(environments, 'ServerURL', 'server url changed ');
 
 		let apiKeyValidator = altered.substring(altered.indexOf('<APIKeyValidator>'), altered.indexOf('</APIKeyValidator>'));
 		let secondAlter = apiKeyValidator.substring(0, apiKeyValidator.indexOf('<KeyValidatorClientType>')) +
-			'<!-- ' +
-			apiKeyValidator.substring(apiKeyValidator.indexOf('<KeyValidatorClientType>'), apiKeyValidator.lastIndexOf('<KeyValidatorClientType>')) +
-			` -->${_n}` +
+			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<KeyValidatorClientType>'), apiKeyValidator.lastIndexOf('<KeyValidatorClientType>'))) +
 			`${_t}<!-- ${_comment} gateway endpoints changed -->\n${_t}` +
 			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<KeyValidatorClientType>'), apiKeyValidator.indexOf('<EnableThriftServer>')) +
-			'<!-- ' +
-			apiKeyValidator.substring(apiKeyValidator.indexOf('<EnableThriftServer>'), apiKeyValidator.lastIndexOf('<EnableThriftServer>')) +
-			` -->${_n}` +
+			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<EnableThriftServer>'), apiKeyValidator.lastIndexOf('<EnableThriftServer>'))) +
 			`${_t}<!-- ${_comment} gateway endpoints changed -->\n${_t}` +
 			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<EnableThriftServer>'), apiKeyValidator.length);
 
 		let tConf = altered.substring(altered.indexOf('<ThrottlingConfigurations>'), altered.indexOf('</ThrottlingConfigurations>'));
 		let policyDeployer = tConf.substring(tConf.indexOf('<PolicyDeployer>'), tConf.indexOf('</PolicyDeployer>'));
-		let sfirstAlter = alterElement(policyDeployer, 'Enabled');
+		let sfirstAlter = alterElement(policyDeployer, 'Enabled', 'disabled ');
 		let thirdAlter = tConf.substring(0, tConf.indexOf('<PolicyDeployer>')) +
 			sfirstAlter +
 			tConf.substring(tConf.indexOf('</PolicyDeployer>'), tConf.length);
@@ -415,47 +405,37 @@ async function configureDPub(p, _count) {
 			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="PolicyDeployer"]/*[local-name()="ServiceURL"]')
 			.addNextSibling(policyDepElement);
 
-		let blockCElement = new libxmljs.Element(doc, 'Enabled', 'false');
-
 		apim.root()
 			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="BlockCondition"]/*[local-name()="Enabled"]')
-			.addNextSibling(blockCElement);
+			.addNextSibling(dataPubElement);
 
 		apim.root()
 			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="JMSConnectionDetails"]/*[local-name()="Enabled"]')
-			.addNextSibling(blockCElement);
+			.addNextSibling(dataPubElement);
 
 		let altered = removeDeclaration(apim.toString());
 
 		let authManager = altered.substring(altered.indexOf('<AuthManager>'), altered.indexOf('</AuthManager>'));
-		let firstAlter = alterElement(authManager, 'ServerURL');
+		let firstAlter = alterElement(authManager, 'ServerURL', 'server url changed ');
 
 		let environments = altered.substring(altered.indexOf('<Environments>'), altered.indexOf('</Environments>'));
 		let secondAlter = environments.substring(0, environments.indexOf('<ServerURL>')) +
-			'<!-- ' +
-			environments.substring(environments.indexOf('<ServerURL>'), environments.lastIndexOf('<ServerURL>')) +
-			` -->${_n}` +
+			commentElement(environments.substring(environments.indexOf('<ServerURL>'), environments.lastIndexOf('<ServerURL>'))) +
 			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
 			environments.substring(environments.lastIndexOf('<ServerURL>'), environments.indexOf('<GatewayEndpoint>')) +
-			'<!-- ' +
-			environments.substring(environments.indexOf('<GatewayEndpoint>'), environments.lastIndexOf('<GatewayEndpoint>')) +
-			` -->${_n}` +
+			commentElement(environments.substring(environments.indexOf('<GatewayEndpoint>'), environments.lastIndexOf('<GatewayEndpoint>'))) +
 			`${_t}<!-- ${_comment} gateway endpoints changed -->\n${_t}` +
 			environments.substring(environments.lastIndexOf('<GatewayEndpoint>'), environments.length);
 
 		let apiKeyValidator = altered.substring(altered.indexOf('<APIKeyValidator>'), altered.indexOf('</APIKeyValidator>'));
-		let thirdAlter = alterElement(apiKeyValidator, 'EnableThriftServer');
+		let thirdAlter = alterElement(apiKeyValidator, 'EnableThriftServer', 'disable thrift server ');
 
 		let apiStore = altered.substring(altered.indexOf('<APIStore>'), altered.indexOf('</APIStore>'));
 		let fourthAlter = apiStore.substring(0, apiStore.indexOf('<DisplayURL>')) +
-			'<!-- ' +
-			apiStore.substring(apiStore.indexOf('<DisplayURL>'), apiStore.lastIndexOf('<DisplayURL>')) +
-			` -->${_n}` +
+			commentElement(apiStore.substring(apiStore.indexOf('<DisplayURL>'), apiStore.lastIndexOf('<DisplayURL>'))) +
 			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
 			apiStore.substring(apiStore.lastIndexOf('<DisplayURL>'), apiStore.indexOf('<URL>')) +
-			'<!-- ' +
-			apiStore.substring(apiStore.indexOf('<URL>'), apiStore.lastIndexOf('<URL>')) +
-			` -->${_n}` +
+			commentElement(apiStore.substring(apiStore.indexOf('<URL>'), apiStore.lastIndexOf('<URL>'))) +
 			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
 			apiStore.substring(apiStore.lastIndexOf('<URL>'), apiStore.length);
 
@@ -463,28 +443,24 @@ async function configureDPub(p, _count) {
 
 		let trafficmanager = tConf.substring(tConf.indexOf('<TrafficManager>'), tConf.indexOf('</TrafficManager>'));
 		let sfirstAlter = trafficmanager.substring(0, trafficmanager.indexOf('<ReceiverUrlGroup>')) +
-			'<!-- ' +
-			trafficmanager.substring(trafficmanager.indexOf('<ReceiverUrlGroup>'), trafficmanager.lastIndexOf('<ReceiverUrlGroup>')) +
-			` -->${_n}` +
+			commentElement(trafficmanager.substring(trafficmanager.indexOf('<ReceiverUrlGroup>'), trafficmanager.lastIndexOf('<ReceiverUrlGroup>'))) +
 			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
 			trafficmanager.substring(trafficmanager.lastIndexOf('<ReceiverUrlGroup>'), trafficmanager.indexOf('<AuthUrlGroup>')) +
-			'<!-- ' +
-			trafficmanager.substring(trafficmanager.indexOf('<AuthUrlGroup>'), trafficmanager.lastIndexOf('<AuthUrlGroup>')) +
-			` -->${_n}` +
+			commentElement(trafficmanager.substring(trafficmanager.indexOf('<AuthUrlGroup>'), trafficmanager.lastIndexOf('<AuthUrlGroup>'))) +
 			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
 			trafficmanager.substring(trafficmanager.lastIndexOf('<AuthUrlGroup>'), trafficmanager.length);
 
 		let dataPublisher = tConf.substring(tConf.indexOf('<DataPublisher>'), tConf.indexOf('</DataPublisher>'));
-		let ssecondAlter = alterElement(dataPublisher, 'Enabled');
+		let ssecondAlter = alterElement(dataPublisher, 'Enabled', 'disabled ');
 
 		let policyDeployer = tConf.substring(tConf.indexOf('<PolicyDeployer>'), tConf.indexOf('</PolicyDeployer>'));
-		let sthirdAlter = alterElement(policyDeployer, 'ServiceURL');
+		let sthirdAlter = alterElement(policyDeployer, 'ServiceURL', 'traffic manager url ');
 
 		let blockCondition = tConf.substring(tConf.indexOf('<BlockCondition>'), tConf.indexOf('</BlockCondition>'));
-		let sfourthAlter = alterElement(blockCondition, 'Enabled');
+		let sfourthAlter = alterElement(blockCondition, 'Enabled', 'disabled ');
 
 		let jmsConnectionDetails = tConf.substring(tConf.indexOf('<JMSConnectionDetails>'), tConf.indexOf('</JMSConnectionDetails>'));
-		let sfifthAlter = alterElement(jmsConnectionDetails, 'Enabled');
+		let sfifthAlter = alterElement(jmsConnectionDetails, 'Enabled', 'disabled ');
 
 		let fifthAlter = tConf.substring(0, tConf.indexOf('<TrafficManager>')) +
 			sfirstAlter +
@@ -583,55 +559,45 @@ async function configureDStore(p, _count) {
 		let altered = removeDeclaration(apim.toString());
 
 		let authManager = altered.substring(altered.indexOf('<AuthManager>'), altered.indexOf('</AuthManager>'));
-		let firstAlter = alterElement(authManager, 'ServerURL');
+		let firstAlter = alterElement(authManager, 'ServerURL', 'server url changed ');
 
 		let environments = altered.substring(altered.indexOf('<Environments>'), altered.indexOf('</Environments>'));
 		let secondAlter = environments.substring(0, environments.indexOf('<ServerURL>')) +
-			'<!-- ' +
-			environments.substring(environments.indexOf('<ServerURL>'), environments.lastIndexOf('<ServerURL>')) +
-			` -->${_n}` +
+			commentElement(environments.substring(environments.indexOf('<ServerURL>'), environments.lastIndexOf('<ServerURL>'))) +
 			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
 			environments.substring(environments.lastIndexOf('<ServerURL>'), environments.indexOf('<GatewayEndpoint>')) +
-			'<!-- ' +
-			environments.substring(environments.indexOf('<GatewayEndpoint>'), environments.lastIndexOf('<GatewayEndpoint>')) +
-			` -->${_n}` +
+			commentElement(environments.substring(environments.indexOf('<GatewayEndpoint>'), environments.lastIndexOf('<GatewayEndpoint>'))) +
 			`${_t}<!-- ${_comment} gateway endpoints changed -->\n${_t}` +
 			environments.substring(environments.lastIndexOf('<GatewayEndpoint>'), environments.length);
 
 		let apiKeyValidator = altered.substring(altered.indexOf('<APIKeyValidator>'), altered.indexOf('</APIKeyValidator>'));
 		let thirdAlter = apiKeyValidator.substring(0, apiKeyValidator.indexOf('<ServerURL>')) +
-			'<!-- ' +
-			apiKeyValidator.substring(apiKeyValidator.indexOf('<ServerURL>'), apiKeyValidator.lastIndexOf('<ServerURL>')) +
-			` -->${_n}` +
+			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<ServerURL>'), apiKeyValidator.lastIndexOf('<ServerURL>'))) +
 			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
 			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<ServerURL>'), apiKeyValidator.indexOf('<KeyValidatorClientType>')) +
-			'<!-- ' +
-			apiKeyValidator.substring(apiKeyValidator.indexOf('<KeyValidatorClientType>'), apiKeyValidator.lastIndexOf('<KeyValidatorClientType>')) +
-			` -->${_n}` +
+			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<KeyValidatorClientType>'), apiKeyValidator.lastIndexOf('<KeyValidatorClientType>'))) +
 			`${_t}<!-- ${_comment} gateway endpoints changed -->\n${_t}` +
 			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<KeyValidatorClientType>'), apiKeyValidator.indexOf('<EnableThriftServer>')) +
-			'<!-- ' +
-			apiKeyValidator.substring(apiKeyValidator.indexOf('<EnableThriftServer>'), apiKeyValidator.lastIndexOf('<EnableThriftServer>')) +
-			` -->${_n}` +
+			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<EnableThriftServer>'), apiKeyValidator.lastIndexOf('<EnableThriftServer>'))) +
 			`${_t}<!-- ${_comment} gateway endpoints changed -->\n${_t}` +
 			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<EnableThriftServer>'), apiKeyValidator.length);
 
 		let oauthConfig = altered.substring(altered.indexOf('<OAuthConfigurations>'), altered.indexOf('</OAuthConfigurations>'));
-		let fourthAlter = alterElement(oauthConfig, 'RevokeAPIURL');
+		let fourthAlter = alterElement(oauthConfig, 'RevokeAPIURL', 'revoke api url added ');
 
 		let tConf = altered.substring(altered.indexOf('<ThrottlingConfigurations>'), altered.indexOf('</ThrottlingConfigurations>'));
 
 		let dataPublisher = tConf.substring(tConf.indexOf('<DataPublisher>'), tConf.indexOf('</DataPublisher>'));
-		let sfirstAlter = alterElement(dataPublisher, 'Enabled');
+		let sfirstAlter = alterElement(dataPublisher, 'Enabled', 'disabled ');
 
 		let policyDeployer = tConf.substring(tConf.indexOf('<PolicyDeployer>'), tConf.indexOf('</PolicyDeployer>'));
-		let ssecondAlter = alterElement(policyDeployer, 'Enabled');
+		let ssecondAlter = alterElement(policyDeployer, 'Enabled', 'disabled ');
 
 		let blockCondition = tConf.substring(tConf.indexOf('<BlockCondition>'), tConf.indexOf('</BlockCondition>'));
-		let sthirdAlter = alterElement(blockCondition, 'Enabled');
+		let sthirdAlter = alterElement(blockCondition, 'Enabled', 'disabled ');
 
 		let jmsConnectionDetails = tConf.substring(tConf.indexOf('<JMSConnectionDetails>'), tConf.indexOf('</JMSConnectionDetails>'));
-		let sfourthAlter = alterElement(jmsConnectionDetails, 'Enabled');
+		let sfourthAlter = alterElement(jmsConnectionDetails, 'Enabled', 'disabled ');
 
 		let fifthAlter = tConf.substring(0, tConf.indexOf('<DataPublisher>')) +
 			sfirstAlter +
@@ -698,10 +664,8 @@ async function configureDTManager(p, _count) {
 
 function alterElement(element, tag, description) {
 	let alter = element.substring(0, element.indexOf(`<${tag}>`)) +
-		'<!-- ' +
-		element.substring(element.indexOf(`<${tag}>`), element.lastIndexOf(`<${tag}>`)) +
-		` -->${_n}` +
-		`${_t}<!-- ${_comment} ${description ? description : 'server url changed'} -->\n${_t}` +
+		commentElement(element.substring(element.indexOf(`<${tag}>`), element.lastIndexOf(`<${tag}>`))) +
+		`${_t}<!-- ${_comment} ${description ? description : ''}-->\n${_t}` +
 		element.substring(element.lastIndexOf(`<${tag}>`), element.length);
 	return alter;
 }
