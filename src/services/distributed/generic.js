@@ -24,6 +24,9 @@ let _c = {
 		'store',
 		'trafficmanager',
 	],
+	dist: [
+		'publisher',
+	],
 };
 let _comment = 'HYDROGENERATED:';
 let _distributed = 'distributed';
@@ -54,14 +57,15 @@ async function configureMultipleGateway(log) {
 				fs.mkdirSync(pDistributed);
 
 				let source = path.join(_p, d);
-				let _count = 0;
+				let _count = 1;
 
 				_c['multiple-gateway'].sort().forEach(name => {
 					cli.action.start(`\tconfiguring ${d} as ${name}`);
 					fs.copySync(source, path.join(pDistributed, name));
 
 					if (name.startsWith('gateway')) {
-						configureMGW(path.join(pDistributed, name), ++_count);
+						configureMGW(path.join(pDistributed, name), _count);
+						++_count;
 					} else {
 						configureMGWAIO(path.join(pDistributed, name));
 					}
@@ -175,13 +179,7 @@ async function configureMGW(p, _count) {
 		let authManager = altered.substring(altered.indexOf('<AuthManager>'), altered.indexOf('</AuthManager>'));
 		let apiKeyValidator = altered.substring(altered.lastIndexOf('<APIKeyValidator>'), altered.lastIndexOf('</APIKeyValidator>'));
 
-		let firstAlter = authManager.substring(0, authManager.indexOf('<ServerURL>')) +
-			'<!-- ' +
-			authManager.substring(authManager.indexOf('<ServerURL>'), authManager.lastIndexOf('<ServerURL>')) +
-			` -->${_n}` +
-			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
-			authManager.substring(authManager.lastIndexOf('<ServerURL>'), authManager.length);
-
+		let firstAlter = alterElement(authManager, 'ServerURL');
 		let secondAlter = apiKeyValidator.substring(0, apiKeyValidator.indexOf('<ServerURL>')) +
 			'<!-- ' +
 			apiKeyValidator.substring(apiKeyValidator.indexOf('<ServerURL>'), apiKeyValidator.lastIndexOf('<ServerURL>')) +
@@ -197,7 +195,7 @@ async function configureMGW(p, _count) {
 			`${_t}<!-- ${_comment} thrift server has been disabled -->\n${_t}` +
 			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<EnableThriftServer>'), apiKeyValidator.length);
 
-		// altered.substring(0, altered.lastIndexOf('<APIKeyValidator>')) +
+		// altered.substring(0, altered.lastIndexOf('<APIStore>')) +
 		let _altered = altered.substring(0, altered.indexOf('<AuthManager>')) +
 			firstAlter +
 			altered.substring(altered.indexOf('</AuthManager>'), altered.lastIndexOf('<APIKeyValidator>')) +
@@ -216,26 +214,7 @@ async function configureMGW(p, _count) {
 }
 
 async function configureMGWCarbon(p, _count) {
-	await parseXML(null, path.join(p, pCarbon)).then(carbon => {
-		let doc = new libxmljs.Document(carbon);
-
-		// Offset node creation
-		let offsetElement = new libxmljs.Element(doc, 'Offset', _count.toString());
-
-		carbon.root()
-			.get('//*[local-name()="Ports"]/*[local-name()="Offset"]')
-			.addNextSibling(offsetElement);
-
-		let _altered = carbon.toString().replace('encoding="UTF-8"', 'encoding="ISO-8859-1"');
-		_altered = _altered.substring(0, _altered.indexOf('<Offset>')) +
-			'<!-- ' +
-			_altered.substring(_altered.indexOf('<Offset>'), _altered.lastIndexOf('<Offset>')) +
-			` -->${_n}` +
-			`${_t}<!-- ${_comment} port offset ${_count} -->\n${_t}` +
-			_altered.substring(_altered.lastIndexOf('<Offset>'), _altered.length);
-
-		fs.writeFileSync(path.join(p, pCarbon), _altered, _utf8);
-	});
+	await configurePortOffset(p, _count);
 }
 
 // #endregion
@@ -259,8 +238,15 @@ function configureDistributedDeployment(log) {
 				let _count = 0;
 
 				_c.distributed.sort().forEach(name => {
-					cli.action.start(`\t\tconfiguring ${d} as ${name}`);
+					cli.action.start(`\tconfiguring ${d} as ${name}`);
 					fs.copySync(source, path.join(pDistributed, name));
+
+					if (name === 'publisher') {
+						configureDPub(path.join(pDistributed, name), _count);
+					} else {
+						configureDStore(path.join(pDistributed, name), _count);
+					}
+					++_count;
 					cli.action.stop();
 				});
 			}
@@ -268,4 +254,202 @@ function configureDistributedDeployment(log) {
 	}
 }
 
+async function configureDStore(p, _count) {
+	configurePortOffset(p, _count);
+}
+
+async function configureDPub(p, _count) {
+	await parseXML(null, path.join(p, pApiManager)).then(apim => {
+		let doc = new libxmljs.Document(apim);
+
+		let serverUrlElement = new libxmljs.Element(doc, 'ServerURL', 'https://localhost:9444/services/');
+
+		apim.root()
+			.get('//*[local-name()="AuthManager"]/*[local-name()="ServerURL"]')
+			.addNextSibling(serverUrlElement);
+
+		serverUrlElement = new libxmljs.Element(doc, 'ServerURL', 'https://localhost:9443/services/');
+
+		apim.root()
+			.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]/*[local-name()="Environment"]/*[local-name()="ServerURL"]')
+			.addNextSibling(serverUrlElement);
+
+		let gatewayEPElement = new libxmljs.Element(doc, 'GatewayEndpoint', 'http://localhost:8280,https://localhost:8243');
+
+		apim.root()
+			.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]/*[local-name()="Environment"]/*[local-name()="GatewayEndpoint"]')
+			.addNextSibling(gatewayEPElement);
+
+		let enableThriftSElement = new libxmljs.Element(doc, 'EnableThriftServer', 'false');
+
+		apim.root()
+			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="EnableThriftServer"]')
+			.addNextSibling(enableThriftSElement);
+
+		let urlElement = new libxmljs.Element(doc, 'DisplayURL', 'true');
+
+		apim.root()
+			.get('//*[local-name()="APIStore"]/*[local-name()="DisplayURL"]')
+			.addNextSibling(urlElement);
+
+		urlElement = new libxmljs.Element(doc, 'URL', 'https://localhost:9446/store');
+
+		apim.root()
+			.get('//*[local-name()="APIStore"]/*[local-name()="URL"]')
+			.addNextSibling(urlElement);
+
+		let tManagerElement = new libxmljs.Element(doc, 'ReceiverUrlGroup', 'tcp://localhost:9615');
+
+		apim.root()
+			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="TrafficManager"]/*[local-name()="ReceiverUrlGroup"]')
+			.addNextSibling(tManagerElement);
+
+		tManagerElement = new libxmljs.Element(doc, 'AuthUrlGroup', 'ssl://localhost:9715');
+
+		apim.root()
+			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="TrafficManager"]/*[local-name()="AuthUrlGroup"]')
+			.addNextSibling(tManagerElement);
+
+		let dataPubElement = new libxmljs.Element(doc, 'Enabled', 'false');
+
+		apim.root()
+			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="DataPublisher"]/*[local-name()="Enabled"]')
+			.addNextSibling(dataPubElement);
+
+		let policyDepElement = new libxmljs.Element(doc, 'ServiceURL', 'https://localhost:9447/services/');
+
+		apim.root()
+			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="PolicyDeployer"]/*[local-name()="ServiceURL"]')
+			.addNextSibling(policyDepElement);
+
+		let blockCElement = new libxmljs.Element(doc, 'Enabled', 'false');
+
+		apim.root()
+			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="BlockCondition"]/*[local-name()="Enabled"]')
+			.addNextSibling(blockCElement);
+
+		apim.root()
+			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="JMSConnectionDetails"]/*[local-name()="Enabled"]')
+			.addNextSibling(blockCElement);
+
+		let altered = removeDeclaration(apim.toString());
+
+		let authManager = altered.substring(altered.indexOf('<AuthManager>'), altered.indexOf('</AuthManager>'));
+		let firstAlter = alterElement(authManager, 'ServerURL');
+
+		let environments = altered.substring(altered.indexOf('<Environments>'), altered.indexOf('</Environments>'));
+		let secondAlter = environments.substring(0, environments.indexOf('<ServerURL>')) +
+			'<!-- ' +
+			environments.substring(environments.indexOf('<ServerURL>'), environments.lastIndexOf('<ServerURL>')) +
+			` -->${_n}` +
+			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			environments.substring(environments.lastIndexOf('<ServerURL>'), environments.indexOf('<GatewayEndpoint>')) +
+			'<!-- ' +
+			environments.substring(environments.indexOf('<GatewayEndpoint>'), environments.lastIndexOf('<GatewayEndpoint>')) +
+			` -->${_n}` +
+			`${_t}<!-- ${_comment} gateway endpoints changed -->\n${_t}` +
+			environments.substring(environments.lastIndexOf('<GatewayEndpoint>'), environments.length);
+
+		let apiKeyValidator = altered.substring(altered.indexOf('<APIKeyValidator>'), altered.indexOf('</APIKeyValidator>'));
+		let thirdAlter = alterElement(apiKeyValidator, 'EnableThriftServer');
+
+		let apiStore = altered.substring(altered.indexOf('<APIStore>'), altered.indexOf('</APIStore>'));
+		let fourthAlter = apiStore.substring(0, apiStore.indexOf('<DisplayURL>')) +
+			'<!-- ' +
+			apiStore.substring(apiStore.indexOf('<DisplayURL>'), apiStore.lastIndexOf('<DisplayURL>')) +
+			` -->${_n}` +
+			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			apiStore.substring(apiStore.lastIndexOf('<DisplayURL>'), apiStore.indexOf('<URL>')) +
+			'<!-- ' +
+			apiStore.substring(apiStore.indexOf('<URL>'), apiStore.lastIndexOf('<URL>')) +
+			` -->${_n}` +
+			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			apiStore.substring(apiStore.lastIndexOf('<URL>'), apiStore.length);
+
+		let tConf = altered.substring(altered.indexOf('<ThrottlingConfigurations>'), altered.indexOf('</ThrottlingConfigurations>'));
+
+		let trafficmanager = tConf.substring(tConf.indexOf('<TrafficManager>'), tConf.indexOf('</TrafficManager>'));
+		let sfirstAlter = trafficmanager.substring(0, trafficmanager.indexOf('<ReceiverUrlGroup>')) +
+			'<!-- ' +
+			trafficmanager.substring(trafficmanager.indexOf('<ReceiverUrlGroup>'), trafficmanager.lastIndexOf('<ReceiverUrlGroup>')) +
+			` -->${_n}` +
+			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			trafficmanager.substring(trafficmanager.lastIndexOf('<ReceiverUrlGroup>'), trafficmanager.indexOf('<AuthUrlGroup>')) +
+			'<!-- ' +
+			trafficmanager.substring(trafficmanager.indexOf('<AuthUrlGroup>'), trafficmanager.lastIndexOf('<AuthUrlGroup>')) +
+			` -->${_n}` +
+			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			trafficmanager.substring(trafficmanager.lastIndexOf('<AuthUrlGroup>'), trafficmanager.length);
+
+		let dataPublisher = tConf.substring(tConf.indexOf('<DataPublisher>'), tConf.indexOf('</DataPublisher>'));
+		let ssecondAlter = alterElement(dataPublisher, 'Enabled');
+
+		let policyDeployer = tConf.substring(tConf.indexOf('<PolicyDeployer>'), tConf.indexOf('</PolicyDeployer>'));
+		let sthirdAlter = alterElement(policyDeployer, 'ServiceURL');
+
+		let blockCondition = tConf.substring(tConf.indexOf('<BlockCondition>'), tConf.indexOf('</BlockCondition>'));
+		let sfourthAlter = alterElement(blockCondition, 'Enabled');
+
+		let jmsConnectionDetails = tConf.substring(tConf.indexOf('<JMSConnectionDetails>'), tConf.indexOf('</JMSConnectionDetails>'));
+		let sfifthAlter = alterElement(jmsConnectionDetails, 'Enabled');
+
+		let fifthAlter = tConf.substring(0, tConf.indexOf('<TrafficManager>')) +
+			sfirstAlter +
+			tConf.substring(tConf.indexOf('</TrafficManager>'), tConf.indexOf('<DataPublisher>')) +
+			ssecondAlter +
+			tConf.substring(tConf.indexOf('</DataPublisher>'), tConf.indexOf('<PolicyDeployer>')) +
+			sthirdAlter +
+			tConf.substring(tConf.indexOf('</PolicyDeployer>'), tConf.indexOf('<BlockCondition>')) +
+			sfourthAlter +
+			tConf.substring(tConf.indexOf('</BlockCondition>'), tConf.indexOf('<JMSConnectionDetails>')) +
+			sfifthAlter +
+			tConf.substring(tConf.indexOf('</JMSConnectionDetails>'), tConf.length);
+
+		let _altered = altered.substring(0, altered.indexOf('<AuthManager>')) +
+			firstAlter +
+			altered.substring(altered.indexOf('</AuthManager>'), altered.indexOf('<Environments>')) +
+			secondAlter +
+			altered.substring(altered.indexOf('</Environments>'), altered.indexOf('<APIKeyValidator>')) +
+			thirdAlter +
+			altered.substring(altered.indexOf('</APIKeyValidator>'), altered.indexOf('<APIStore>')) +
+			fourthAlter +
+			altered.substring(altered.indexOf('</APIStore>'), altered.indexOf('<ThrottlingConfigurations>')) +
+			fifthAlter +
+			altered.substring(altered.indexOf('</ThrottlingConfigurations>'), altered.length);
+
+		fs.writeFileSync(path.join(p, pApiManager), prettify(_altered, { indent: 4 }) + '\n', _utf8);
+	}).then(() => {
+		configurePortOffset(p, _count);
+	});
+}
+
 // #endregion
+
+function alterElement(element, tag, description) {
+	let alter = element.substring(0, element.indexOf(`<${tag}>`)) +
+		'<!-- ' +
+		element.substring(element.indexOf(`<${tag}>`), element.lastIndexOf(`<${tag}>`)) +
+		` -->${_n}` +
+		`${_t}<!-- ${_comment} ${description ? description : 'server url changed'} -->\n${_t}` +
+		element.substring(element.lastIndexOf(`<${tag}>`), element.length);
+	return alter;
+}
+
+async function configurePortOffset(p, _count) {
+	if (_count > 0)
+		await parseXML(null, path.join(p, pCarbon)).then(carbon => {
+			let doc = new libxmljs.Document(carbon);
+
+			// Offset node creation
+			let offsetElement = new libxmljs.Element(doc, 'Offset', _count.toString());
+
+			carbon.root()
+				.get('//*[local-name()="Ports"]/*[local-name()="Offset"]')
+				.addNextSibling(offsetElement);
+
+			let _altered = carbon.toString().replace('encoding="UTF-8"', 'encoding="ISO-8859-1"');
+			_altered = alterElement(_altered, 'Offset', `port offset ${_count}`);
+
+			fs.writeFileSync(path.join(p, pCarbon), _altered, _utf8);
+		});
+}
