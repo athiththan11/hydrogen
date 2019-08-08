@@ -38,6 +38,18 @@ let _p = process.cwd();
 let _t = '\t\t';
 let _utf8 = 'utf8';
 
+let _gateway = 0;
+let _keymanager = 1;
+let _publisher = 2;
+let _store = 3;
+let _trafficmanager = 4;
+
+let _p8243 = 8243;
+let _p8280 = 8280;
+let _p9443 = 9443;
+let _p9611 = 9611;
+let _p9711 = 9711;
+
 exports.configure = async function (log, args) {
 	if (args['multiple-gateway'])
 		configureMultipleGateway(log);
@@ -85,8 +97,8 @@ async function configureMGWAIO(p) {
 		let doc = new libxmljs.Document(apim);
 
 		// environment node creation
-		let envProdNode = buildEnvironmentNode(doc, 'production', 'Production Gateway', 'Production Gateway Environment', 0);
-		let envHybNode = buildEnvironmentNode(doc, 'hybrid', 'Production and Sandbox', 'Hybrid Gateway Environment', 1);
+		let envProdNode = buildEnvironmentNode(doc, 'production', 'Production Gateway', 'Production Gateway Environment', 1);
+		let envHybNode = buildEnvironmentNode(doc, 'hybrid', 'Production and Sandbox', 'Hybrid Gateway Environment', 2);
 
 		let defaultElement = apim.root()
 			.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]/*[local-name()="Environment"]')
@@ -133,13 +145,13 @@ function buildEnvironmentNode(doc, type, name, description, c) {
 		.parent()
 		.node('Description', description)
 		.parent()
-		.node('ServerURL', `https://localhost:${9444 + c}/services/`)
+		.node('ServerURL', `https://localhost:${_p9443 + c}/services/`)
 		.parent()
 		.node('Username', 'admin')
 		.parent()
 		.node('Password', 'admin')
 		.parent()
-		.node('GatewayEndpoint', `http://localhost:${8281 + c},https://localhost:${8244 + c}`);
+		.node('GatewayEndpoint', `http://localhost:${_p8280 + c},https://localhost:${_p8243 + c}`);
 	return environmentNode;
 }
 
@@ -276,7 +288,7 @@ async function configureDKManager(p, _count) {
 	await parseXML(null, path.join(p, pApiManager)).then(apim => {
 		let doc = new libxmljs.Document(apim);
 
-		let serverUrlElement = new libxmljs.Element(doc, 'ServerURL', 'https://localhost:9443/services/');
+		let serverUrlElement = new libxmljs.Element(doc, 'ServerURL', `https://localhost:${_p9443 + _gateway}/services/`);
 
 		apim.root()
 			.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]/*[local-name()="Environment"]/*[local-name()="ServerURL"]')
@@ -343,19 +355,19 @@ async function configureDPub(p, _count) {
 	await parseXML(null, path.join(p, pApiManager)).then(apim => {
 		let doc = new libxmljs.Document(apim);
 
-		let serverUrlElement = new libxmljs.Element(doc, 'ServerURL', 'https://localhost:9444/services/');
+		let serverUrlElement = new libxmljs.Element(doc, 'ServerURL', `https://localhost:${_p9443 + _keymanager}/services/`);
 
 		apim.root()
 			.get('//*[local-name()="AuthManager"]/*[local-name()="ServerURL"]')
 			.addNextSibling(serverUrlElement);
 
-		serverUrlElement = new libxmljs.Element(doc, 'ServerURL', 'https://localhost:9443/services/');
+		serverUrlElement = new libxmljs.Element(doc, 'ServerURL', `https://localhost:${_p9443 + _gateway}/services/`);
 
 		apim.root()
 			.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]/*[local-name()="Environment"]/*[local-name()="ServerURL"]')
 			.addNextSibling(serverUrlElement);
 
-		let gatewayEPElement = new libxmljs.Element(doc, 'GatewayEndpoint', 'http://localhost:8280,https://localhost:8243');
+		let gatewayEPElement = new libxmljs.Element(doc, 'GatewayEndpoint', `http://localhost:${_p8280 + _gateway},https://localhost:${_p8243 + _gateway}`);
 
 		apim.root()
 			.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]/*[local-name()="Environment"]/*[local-name()="GatewayEndpoint"]')
@@ -373,19 +385,19 @@ async function configureDPub(p, _count) {
 			.get('//*[local-name()="APIStore"]/*[local-name()="DisplayURL"]')
 			.addNextSibling(urlElement);
 
-		urlElement = new libxmljs.Element(doc, 'URL', 'https://localhost:9446/store');
+		urlElement = new libxmljs.Element(doc, 'URL', `https://localhost:${_p9443 + _store}/store`);
 
 		apim.root()
 			.get('//*[local-name()="APIStore"]/*[local-name()="URL"]')
 			.addNextSibling(urlElement);
 
-		let tManagerElement = new libxmljs.Element(doc, 'ReceiverUrlGroup', 'tcp://localhost:9615');
+		let tManagerElement = new libxmljs.Element(doc, 'ReceiverUrlGroup', `tcp://localhost:${_p9611 + _trafficmanager}`);
 
 		apim.root()
 			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="TrafficManager"]/*[local-name()="ReceiverUrlGroup"]')
 			.addNextSibling(tManagerElement);
 
-		tManagerElement = new libxmljs.Element(doc, 'AuthUrlGroup', 'ssl://localhost:9715');
+		tManagerElement = new libxmljs.Element(doc, 'AuthUrlGroup', `ssl://localhost:${_p9711 + _trafficmanager}`);
 
 		apim.root()
 			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="TrafficManager"]/*[local-name()="AuthUrlGroup"]')
@@ -397,7 +409,7 @@ async function configureDPub(p, _count) {
 			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="DataPublisher"]/*[local-name()="Enabled"]')
 			.addNextSibling(dataPubElement);
 
-		let policyDepElement = new libxmljs.Element(doc, 'ServiceURL', 'https://localhost:9447/services/');
+		let policyDepElement = new libxmljs.Element(doc, 'ServiceURL', `https://localhost:${_p9443 + _trafficmanager}/services/`);
 
 		apim.root()
 			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="PolicyDeployer"]/*[local-name()="ServiceURL"]')
@@ -508,25 +520,25 @@ async function configureDStore(p, _count) {
 	await parseXML(null, path.join(p, pApiManager)).then(apim => {
 		let doc = new libxmljs.Document(apim);
 
-		let serverUrlElement = new libxmljs.Element(doc, 'ServerURL', 'https://localhost:9444/services/');
+		let serverUrlElement = new libxmljs.Element(doc, 'ServerURL', `https://localhost:${_p9443 + _keymanager}/services/`);
 
 		apim.root()
 			.get('//*[local-name()="AuthManager"]/*[local-name()="ServerURL"]')
 			.addNextSibling(serverUrlElement);
 
-		serverUrlElement = new libxmljs.Element(doc, 'ServerURL', 'https://localhost:9443/services/');
+		serverUrlElement = new libxmljs.Element(doc, 'ServerURL', `https://localhost:${_p9443 + _gateway}/services/`);
 
 		apim.root()
 			.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]/*[local-name()="Environment"]/*[local-name()="ServerURL"]')
 			.addNextSibling(serverUrlElement);
 
-		let gatewayEPElement = new libxmljs.Element(doc, 'GatewayEndpoint', 'http://localhost:8280,https://localhost:8243');
+		let gatewayEPElement = new libxmljs.Element(doc, 'GatewayEndpoint', `http://localhost:${_p8280 + _gateway},https://localhost:${_p8243 + _gateway}`);
 
 		apim.root()
 			.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]/*[local-name()="Environment"]/*[local-name()="GatewayEndpoint"]')
 			.addNextSibling(gatewayEPElement);
 
-		serverUrlElement = new libxmljs.Element(doc, 'ServerURL', 'https://localhost:9444/services/');
+		serverUrlElement = new libxmljs.Element(doc, 'ServerURL', `https://localhost:${_p9443 + _keymanager}/services/`);
 
 		apim.root()
 			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="ServerURL"]')
@@ -544,7 +556,7 @@ async function configureDStore(p, _count) {
 			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="EnableThriftServer"]')
 			.addNextSibling(enableThriftSElement);
 
-		let revokeElement = new libxmljs.Element(doc, 'RevokeAPIURL', 'https://localhost:8243/revoke');
+		let revokeElement = new libxmljs.Element(doc, 'RevokeAPIURL', `https://localhost:${_p8243 + _gateway}/revoke`);
 
 		apim.root()
 			.get('//*[local-name()="OAuthConfigurations"]/*[local-name()="RevokeAPIURL"]')
@@ -692,6 +704,11 @@ function alterElement(element, tag, description) {
 		`${_t}<!-- ${_comment} ${description ? description : 'server url changed'} -->\n${_t}` +
 		element.substring(element.lastIndexOf(`<${tag}>`), element.length);
 	return alter;
+}
+
+function commentElement(element) {
+	let comment = '<!-- ' + element + ` -->${_n}`;
+	return comment;
 }
 
 async function configurePortOffset(p, _count) {
