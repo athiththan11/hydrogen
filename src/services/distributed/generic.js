@@ -1,6 +1,6 @@
 const fs = require('fs-extra');
-const path = require('path');
 const libxmljs = require('libxmljs');
+const path = require('path');
 const prettify = require('prettify-xml');
 const { cli } = require('cli-ux');
 
@@ -8,9 +8,12 @@ const { logger } = require('../../utils/logger');
 const { parseXML, removeDeclaration } = require('../../utils/utility');
 
 let pApiManager = '/repository/conf/api-manager.xml';
+let pAxis2 = '/repository/conf/axis2/axis2.xml';
+let pAxis2TM = '/repository/conf/axis2/axis2_TM.xml';
 let pCarbon = '/repository/conf/carbon.xml';
+let pRegistry = '/repository/conf/registry.xml';
+let pRegistryTM = '/repository/conf/registry_TM.xml';
 
-let _p = process.cwd();
 let _c = {
 	'multiple-gateway': [
 		'allinone',
@@ -25,12 +28,13 @@ let _c = {
 		'trafficmanager',
 	],
 	dist: [
-		'store',
+		'trafficmanager',
 	],
 };
 let _comment = 'HYDROGENERATED:';
 let _distributed = 'distributed';
 let _n = '\n\n';
+let _p = process.cwd();
 let _t = '\t\t';
 let _utf8 = 'utf8';
 
@@ -241,10 +245,14 @@ function configureDistributedDeployment(log) {
 					cli.action.start(`\tconfiguring ${d} as ${name}`);
 					fs.copySync(source, path.join(pDistributed, name));
 
-					if (name === 'publisher') {
+					if (name === 'keymanager') {
+						configureDKManager(path.join(pDistributed, name), _count);
+					} else if (name === 'publisher') {
 						configureDPub(path.join(pDistributed, name), _count);
 					} else if (name === 'store') {
 						configureDStore(path.join(pDistributed, name), _count);
+					} else if (name === 'trafficmanager') {
+						configureDTManager(path.join(pDistributed, name), _count);
 					} else {
 						configurePortOffset(path.join(pDistributed, name), _count);
 					}
@@ -256,32 +264,22 @@ function configureDistributedDeployment(log) {
 	}
 }
 
-async function configureDStore(p, _count) {
+async function configureDGWay(p, _count) {
+	await parseXML().then(() => {
+
+	}).then(() => {
+		configurePortOffset(p, _count);
+	});
+}
+
+async function configureDKManager(p, _count) {
 	await parseXML(null, path.join(p, pApiManager)).then(apim => {
 		let doc = new libxmljs.Document(apim);
 
-		let serverUrlElement = new libxmljs.Element(doc, 'ServerURL', 'https://localhost:9444/services/');
-
-		apim.root()
-			.get('//*[local-name()="AuthManager"]/*[local-name()="ServerURL"]')
-			.addNextSibling(serverUrlElement);
-
-		serverUrlElement = new libxmljs.Element(doc, 'ServerURL', 'https://localhost:9443/services/');
+		let serverUrlElement = new libxmljs.Element(doc, 'ServerURL', 'https://localhost:9443/services/');
 
 		apim.root()
 			.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]/*[local-name()="Environment"]/*[local-name()="ServerURL"]')
-			.addNextSibling(serverUrlElement);
-
-		let gatewayEPElement = new libxmljs.Element(doc, 'GatewayEndpoint', 'http://localhost:8280,https://localhost:8243');
-
-		apim.root()
-			.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]/*[local-name()="Environment"]/*[local-name()="GatewayEndpoint"]')
-			.addNextSibling(gatewayEPElement);
-
-		serverUrlElement = new libxmljs.Element(doc, 'ServerURL', 'https://localhost:9444/services/');
-
-		apim.root()
-			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="ServerURL"]')
 			.addNextSibling(serverUrlElement);
 
 		let keyValCElement = new libxmljs.Element(doc, 'KeyValidatorClientType', 'WSClient');
@@ -296,55 +294,19 @@ async function configureDStore(p, _count) {
 			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="EnableThriftServer"]')
 			.addNextSibling(enableThriftSElement);
 
-		let revokeElement = new libxmljs.Element(doc, 'RevokeAPIURL', 'https://localhost:8243/revoke');
-
-		apim.root()
-			.get('//*[local-name()="OAuthConfigurations"]/*[local-name()="RevokeAPIURL"]')
-			.addNextSibling(revokeElement);
-
 		let dataPubElement = new libxmljs.Element(doc, 'Enabled', 'false');
-
-		apim.root()
-			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="DataPublisher"]/*[local-name()="Enabled"]')
-			.addNextSibling(dataPubElement);
 
 		apim.root()
 			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="PolicyDeployer"]/*[local-name()="Enabled"]')
 			.addNextSibling(dataPubElement);
 
-		apim.root()
-			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="BlockCondition"]/*[local-name()="Enabled"]')
-			.addNextSibling(dataPubElement);
-
-		apim.root()
-			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="JMSConnectionDetails"]/*[local-name()="Enabled"]')
-			.addNextSibling(dataPubElement);
-
 		let altered = removeDeclaration(apim.toString());
 
-		let authManager = altered.substring(altered.indexOf('<AuthManager>'), altered.indexOf('</AuthManager>'));
-		let firstAlter = alterElement(authManager, 'ServerURL');
-
 		let environments = altered.substring(altered.indexOf('<Environments>'), altered.indexOf('</Environments>'));
-		let secondAlter = environments.substring(0, environments.indexOf('<ServerURL>')) +
-			'<!-- ' +
-			environments.substring(environments.indexOf('<ServerURL>'), environments.lastIndexOf('<ServerURL>')) +
-			` -->${_n}` +
-			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
-			environments.substring(environments.lastIndexOf('<ServerURL>'), environments.indexOf('<GatewayEndpoint>')) +
-			'<!-- ' +
-			environments.substring(environments.indexOf('<GatewayEndpoint>'), environments.lastIndexOf('<GatewayEndpoint>')) +
-			` -->${_n}` +
-			`${_t}<!-- ${_comment} gateway endpoints changed -->\n${_t}` +
-			environments.substring(environments.lastIndexOf('<GatewayEndpoint>'), environments.length);
+		let firstAlter = alterElement(environments, 'ServerURL');
 
 		let apiKeyValidator = altered.substring(altered.indexOf('<APIKeyValidator>'), altered.indexOf('</APIKeyValidator>'));
-		let thirdAlter = apiKeyValidator.substring(0, apiKeyValidator.indexOf('<ServerURL>')) +
-			'<!-- ' +
-			apiKeyValidator.substring(apiKeyValidator.indexOf('<ServerURL>'), apiKeyValidator.lastIndexOf('<ServerURL>')) +
-			` -->${_n}` +
-			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
-			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<ServerURL>'), apiKeyValidator.indexOf('<KeyValidatorClientType>')) +
+		let secondAlter = apiKeyValidator.substring(0, apiKeyValidator.indexOf('<KeyValidatorClientType>')) +
 			'<!-- ' +
 			apiKeyValidator.substring(apiKeyValidator.indexOf('<KeyValidatorClientType>'), apiKeyValidator.lastIndexOf('<KeyValidatorClientType>')) +
 			` -->${_n}` +
@@ -356,43 +318,19 @@ async function configureDStore(p, _count) {
 			`${_t}<!-- ${_comment} gateway endpoints changed -->\n${_t}` +
 			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<EnableThriftServer>'), apiKeyValidator.length);
 
-		let oauthConfig = altered.substring(altered.indexOf('<OAuthConfigurations>'), altered.indexOf('</OAuthConfigurations>'));
-		let fourthAlter = alterElement(oauthConfig, 'RevokeAPIURL');
-
 		let tConf = altered.substring(altered.indexOf('<ThrottlingConfigurations>'), altered.indexOf('</ThrottlingConfigurations>'));
-
-		let dataPublisher = tConf.substring(tConf.indexOf('<DataPublisher>'), tConf.indexOf('</DataPublisher>'));
-		let sfirstAlter = alterElement(dataPublisher, 'Enabled');
-
 		let policyDeployer = tConf.substring(tConf.indexOf('<PolicyDeployer>'), tConf.indexOf('</PolicyDeployer>'));
-		let ssecondAlter = alterElement(policyDeployer, 'Enabled');
-
-		let blockCondition = tConf.substring(tConf.indexOf('<BlockCondition>'), tConf.indexOf('</BlockCondition>'));
-		let sthirdAlter = alterElement(blockCondition, 'Enabled');
-
-		let jmsConnectionDetails = tConf.substring(tConf.indexOf('<JMSConnectionDetails>'), tConf.indexOf('</JMSConnectionDetails>'));
-		let sfourthAlter = alterElement(jmsConnectionDetails, 'Enabled');
-
-		let fifthAlter = tConf.substring(0, tConf.indexOf('<DataPublisher>')) +
+		let sfirstAlter = alterElement(policyDeployer, 'Enabled');
+		let thirdAlter = tConf.substring(0, tConf.indexOf('<PolicyDeployer>')) +
 			sfirstAlter +
-			tConf.substring(tConf.indexOf('</DataPublisher>'), tConf.indexOf('<PolicyDeployer>')) +
-			ssecondAlter +
-			tConf.substring(tConf.indexOf('</PolicyDeployer>'), tConf.indexOf('<BlockCondition>')) +
-			sthirdAlter +
-			tConf.substring(tConf.indexOf('</BlockCondition>'), tConf.indexOf('<JMSConnectionDetails>')) +
-			sfourthAlter +
-			tConf.substring(tConf.indexOf('</JMSConnectionDetails>'), tConf.length);
+			tConf.substring(tConf.indexOf('</PolicyDeployer>'), tConf.length);
 
-		let _altered = altered.substring(0, altered.indexOf('<AuthManager>')) +
+		let _altered = altered.substring(0, altered.indexOf('<Environments>')) +
 			firstAlter +
-			altered.substring(altered.indexOf('</AuthManager>'), altered.indexOf('<Environments>')) +
-			secondAlter +
 			altered.substring(altered.indexOf('</Environments>'), altered.indexOf('<APIKeyValidator>')) +
+			secondAlter +
+			altered.substring(altered.indexOf('</APIKeyValidator>'), altered.indexOf('<ThrottlingConfigurations>')) +
 			thirdAlter +
-			altered.substring(altered.indexOf('</APIKeyValidator>'), altered.indexOf('<OAuthConfigurations>')) +
-			fourthAlter +
-			altered.substring(altered.indexOf('</OAuthConfigurations>'), altered.indexOf('<ThrottlingConfigurations>')) +
-			fifthAlter +
 			altered.substring(altered.indexOf('</ThrottlingConfigurations>'), altered.length);
 
 		fs.writeFileSync(path.join(p, pApiManager), prettify(_altered, { indent: 4 }) + '\n', _utf8);
@@ -559,6 +497,184 @@ async function configureDPub(p, _count) {
 			altered.substring(altered.indexOf('</APIStore>'), altered.indexOf('<ThrottlingConfigurations>')) +
 			fifthAlter +
 			altered.substring(altered.indexOf('</ThrottlingConfigurations>'), altered.length);
+
+		fs.writeFileSync(path.join(p, pApiManager), prettify(_altered, { indent: 4 }) + '\n', _utf8);
+	}).then(() => {
+		configurePortOffset(p, _count);
+	});
+}
+
+async function configureDStore(p, _count) {
+	await parseXML(null, path.join(p, pApiManager)).then(apim => {
+		let doc = new libxmljs.Document(apim);
+
+		let serverUrlElement = new libxmljs.Element(doc, 'ServerURL', 'https://localhost:9444/services/');
+
+		apim.root()
+			.get('//*[local-name()="AuthManager"]/*[local-name()="ServerURL"]')
+			.addNextSibling(serverUrlElement);
+
+		serverUrlElement = new libxmljs.Element(doc, 'ServerURL', 'https://localhost:9443/services/');
+
+		apim.root()
+			.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]/*[local-name()="Environment"]/*[local-name()="ServerURL"]')
+			.addNextSibling(serverUrlElement);
+
+		let gatewayEPElement = new libxmljs.Element(doc, 'GatewayEndpoint', 'http://localhost:8280,https://localhost:8243');
+
+		apim.root()
+			.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]/*[local-name()="Environment"]/*[local-name()="GatewayEndpoint"]')
+			.addNextSibling(gatewayEPElement);
+
+		serverUrlElement = new libxmljs.Element(doc, 'ServerURL', 'https://localhost:9444/services/');
+
+		apim.root()
+			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="ServerURL"]')
+			.addNextSibling(serverUrlElement);
+
+		let keyValCElement = new libxmljs.Element(doc, 'KeyValidatorClientType', 'WSClient');
+
+		apim.root()
+			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="KeyValidatorClientType"]')
+			.addNextSibling(keyValCElement);
+
+		let enableThriftSElement = new libxmljs.Element(doc, 'EnableThriftServer', 'false');
+
+		apim.root()
+			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="EnableThriftServer"]')
+			.addNextSibling(enableThriftSElement);
+
+		let revokeElement = new libxmljs.Element(doc, 'RevokeAPIURL', 'https://localhost:8243/revoke');
+
+		apim.root()
+			.get('//*[local-name()="OAuthConfigurations"]/*[local-name()="RevokeAPIURL"]')
+			.addNextSibling(revokeElement);
+
+		let dataPubElement = new libxmljs.Element(doc, 'Enabled', 'false');
+
+		apim.root()
+			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="DataPublisher"]/*[local-name()="Enabled"]')
+			.addNextSibling(dataPubElement);
+
+		apim.root()
+			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="PolicyDeployer"]/*[local-name()="Enabled"]')
+			.addNextSibling(dataPubElement);
+
+		apim.root()
+			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="BlockCondition"]/*[local-name()="Enabled"]')
+			.addNextSibling(dataPubElement);
+
+		apim.root()
+			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="JMSConnectionDetails"]/*[local-name()="Enabled"]')
+			.addNextSibling(dataPubElement);
+
+		let altered = removeDeclaration(apim.toString());
+
+		let authManager = altered.substring(altered.indexOf('<AuthManager>'), altered.indexOf('</AuthManager>'));
+		let firstAlter = alterElement(authManager, 'ServerURL');
+
+		let environments = altered.substring(altered.indexOf('<Environments>'), altered.indexOf('</Environments>'));
+		let secondAlter = environments.substring(0, environments.indexOf('<ServerURL>')) +
+			'<!-- ' +
+			environments.substring(environments.indexOf('<ServerURL>'), environments.lastIndexOf('<ServerURL>')) +
+			` -->${_n}` +
+			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			environments.substring(environments.lastIndexOf('<ServerURL>'), environments.indexOf('<GatewayEndpoint>')) +
+			'<!-- ' +
+			environments.substring(environments.indexOf('<GatewayEndpoint>'), environments.lastIndexOf('<GatewayEndpoint>')) +
+			` -->${_n}` +
+			`${_t}<!-- ${_comment} gateway endpoints changed -->\n${_t}` +
+			environments.substring(environments.lastIndexOf('<GatewayEndpoint>'), environments.length);
+
+		let apiKeyValidator = altered.substring(altered.indexOf('<APIKeyValidator>'), altered.indexOf('</APIKeyValidator>'));
+		let thirdAlter = apiKeyValidator.substring(0, apiKeyValidator.indexOf('<ServerURL>')) +
+			'<!-- ' +
+			apiKeyValidator.substring(apiKeyValidator.indexOf('<ServerURL>'), apiKeyValidator.lastIndexOf('<ServerURL>')) +
+			` -->${_n}` +
+			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<ServerURL>'), apiKeyValidator.indexOf('<KeyValidatorClientType>')) +
+			'<!-- ' +
+			apiKeyValidator.substring(apiKeyValidator.indexOf('<KeyValidatorClientType>'), apiKeyValidator.lastIndexOf('<KeyValidatorClientType>')) +
+			` -->${_n}` +
+			`${_t}<!-- ${_comment} gateway endpoints changed -->\n${_t}` +
+			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<KeyValidatorClientType>'), apiKeyValidator.indexOf('<EnableThriftServer>')) +
+			'<!-- ' +
+			apiKeyValidator.substring(apiKeyValidator.indexOf('<EnableThriftServer>'), apiKeyValidator.lastIndexOf('<EnableThriftServer>')) +
+			` -->${_n}` +
+			`${_t}<!-- ${_comment} gateway endpoints changed -->\n${_t}` +
+			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<EnableThriftServer>'), apiKeyValidator.length);
+
+		let oauthConfig = altered.substring(altered.indexOf('<OAuthConfigurations>'), altered.indexOf('</OAuthConfigurations>'));
+		let fourthAlter = alterElement(oauthConfig, 'RevokeAPIURL');
+
+		let tConf = altered.substring(altered.indexOf('<ThrottlingConfigurations>'), altered.indexOf('</ThrottlingConfigurations>'));
+
+		let dataPublisher = tConf.substring(tConf.indexOf('<DataPublisher>'), tConf.indexOf('</DataPublisher>'));
+		let sfirstAlter = alterElement(dataPublisher, 'Enabled');
+
+		let policyDeployer = tConf.substring(tConf.indexOf('<PolicyDeployer>'), tConf.indexOf('</PolicyDeployer>'));
+		let ssecondAlter = alterElement(policyDeployer, 'Enabled');
+
+		let blockCondition = tConf.substring(tConf.indexOf('<BlockCondition>'), tConf.indexOf('</BlockCondition>'));
+		let sthirdAlter = alterElement(blockCondition, 'Enabled');
+
+		let jmsConnectionDetails = tConf.substring(tConf.indexOf('<JMSConnectionDetails>'), tConf.indexOf('</JMSConnectionDetails>'));
+		let sfourthAlter = alterElement(jmsConnectionDetails, 'Enabled');
+
+		let fifthAlter = tConf.substring(0, tConf.indexOf('<DataPublisher>')) +
+			sfirstAlter +
+			tConf.substring(tConf.indexOf('</DataPublisher>'), tConf.indexOf('<PolicyDeployer>')) +
+			ssecondAlter +
+			tConf.substring(tConf.indexOf('</PolicyDeployer>'), tConf.indexOf('<BlockCondition>')) +
+			sthirdAlter +
+			tConf.substring(tConf.indexOf('</BlockCondition>'), tConf.indexOf('<JMSConnectionDetails>')) +
+			sfourthAlter +
+			tConf.substring(tConf.indexOf('</JMSConnectionDetails>'), tConf.length);
+
+		let _altered = altered.substring(0, altered.indexOf('<AuthManager>')) +
+			firstAlter +
+			altered.substring(altered.indexOf('</AuthManager>'), altered.indexOf('<Environments>')) +
+			secondAlter +
+			altered.substring(altered.indexOf('</Environments>'), altered.indexOf('<APIKeyValidator>')) +
+			thirdAlter +
+			altered.substring(altered.indexOf('</APIKeyValidator>'), altered.indexOf('<OAuthConfigurations>')) +
+			fourthAlter +
+			altered.substring(altered.indexOf('</OAuthConfigurations>'), altered.indexOf('<ThrottlingConfigurations>')) +
+			fifthAlter +
+			altered.substring(altered.indexOf('</ThrottlingConfigurations>'), altered.length);
+
+		fs.writeFileSync(path.join(p, pApiManager), prettify(_altered, { indent: 4 }) + '\n', _utf8);
+	}).then(() => {
+		configurePortOffset(p, _count);
+	});
+}
+
+async function configureDTManager(p, _count) {
+	// replace registry.xml with registry_TM.xml
+	fs.removeSync(path.join(p, pRegistry));
+	fs.renameSync(path.join(p, pRegistryTM), path.join(p, pRegistry));
+
+	// replace axis2.xml with axis2_TM.xml
+	fs.removeSync(path.join(p, pAxis2));
+	fs.renameSync(path.join(p, pAxis2TM), path.join(p, pAxis2));
+
+	await parseXML(null, path.join(p, pApiManager)).then(apim => {
+		let doc = new libxmljs.Document(apim);
+
+		let enableThriftSElement = new libxmljs.Element(doc, 'EnableThriftServer', 'false');
+
+		apim.root()
+			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="EnableThriftServer"]')
+			.addNextSibling(enableThriftSElement);
+
+		let altered = removeDeclaration(apim.toString());
+
+		let apiKeyValidator = altered.substring(altered.indexOf('<APIKeyValidator>'), altered.indexOf('</APIKeyValidator>'));
+		let firstAlter = alterElement(apiKeyValidator, 'EnableThriftServer', 'disabled thrift server');
+
+		let _altered = altered.substring(0, altered.indexOf('<APIKeyValidator>')) +
+			firstAlter +
+			altered.substring(altered.indexOf('</APIKeyValidator>'), altered.length);
 
 		fs.writeFileSync(path.join(p, pApiManager), prettify(_altered, { indent: 4 }) + '\n', _utf8);
 	}).then(() => {
