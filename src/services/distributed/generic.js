@@ -27,9 +27,6 @@ let _c = {
 		'store',
 		'trafficmanager',
 	],
-	dist: [
-		'trafficmanager',
-	],
 };
 let _comment = 'HYDROGENERATED:';
 let _distributed = 'distributed';
@@ -44,6 +41,7 @@ let _publisher = 2;
 let _store = 3;
 let _trafficmanager = 4;
 
+let _p5672 = 5672;
 let _p8243 = 8243;
 let _p8280 = 8280;
 let _p9443 = 9443;
@@ -247,11 +245,13 @@ function configureDistributedDeployment(log) {
 				let source = path.join(_p, d);
 				let _count = 0;
 
-				_c.dist.sort().forEach(name => {
+				_c.distributed.sort().forEach(name => {
 					cli.action.start(`\tconfiguring ${d} as ${name}`);
 					fs.copySync(source, path.join(pDistributed, name));
 
-					if (name === 'keymanager') {
+					if (name === 'gateway') {
+						configureDGWay(path.join(pDistributed, name), _count);
+					} else if (name === 'keymanager') {
 						configureDKManager(path.join(pDistributed, name), _count);
 					} else if (name === 'publisher') {
 						configureDPub(path.join(pDistributed, name), _count);
@@ -271,8 +271,121 @@ function configureDistributedDeployment(log) {
 }
 
 async function configureDGWay(p, _count) {
-	await parseXML().then(() => {
+	await parseXML(null, path.join(p, pApiManager)).then(apim => {
+		let doc = new libxmljs.Document(apim);
 
+		let serverUrlElement = new libxmljs.Element(doc, 'ServerURL', `https://localhost:${_p9443 + _keymanager}/services/`);
+
+		apim.root()
+			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="ServerURL"]')
+			.addNextSibling(serverUrlElement);
+
+		let keyValCElement = new libxmljs.Element(doc, 'KeyValidatorClientType', 'WSClient');
+
+		apim.root()
+			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="KeyValidatorClientType"]')
+			.addNextSibling(keyValCElement);
+
+		let enableThriftSElement = new libxmljs.Element(doc, 'EnableThriftServer', 'false');
+
+		apim.root()
+			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="EnableThriftServer"]')
+			.addNextSibling(enableThriftSElement);
+
+		let tManagerElement = new libxmljs.Element(doc, 'ReceiverUrlGroup', `tcp://localhost:${_p9611 + _trafficmanager}`);
+
+		apim.root()
+			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="TrafficManager"]/*[local-name()="ReceiverUrlGroup"]')
+			.addNextSibling(tManagerElement);
+
+		tManagerElement = new libxmljs.Element(doc, 'AuthUrlGroup', `ssl://localhost:${_p9711 + _trafficmanager}`);
+
+		apim.root()
+			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="TrafficManager"]/*[local-name()="AuthUrlGroup"]')
+			.addNextSibling(tManagerElement);
+
+		let policyDepElement = new libxmljs.Element(doc, 'Enabled', 'false');
+
+		apim.root()
+			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="PolicyDeployer"]/*[local-name()="Enabled"]')
+			.addNextSibling(policyDepElement);
+
+		policyDepElement = new libxmljs.Element(doc, 'ServiceURL', `https://localhost:${_p9443 + _trafficmanager}/services/`);
+
+		apim.root()
+			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="PolicyDeployer"]/*[local-name()="ServiceURL"]')
+			.addNextSibling(policyDepElement);
+
+		let jmsCElement = new libxmljs.Element(doc, 'ServiceURL', `tcp://localhost:${_p5672 + _trafficmanager}`);
+
+		apim.root()
+			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="JMSConnectionDetails"]/*[local-name()="Destination"]')
+			.addNextSibling(jmsCElement);
+
+		// eslint-disable-next-line no-template-curly-in-string
+		jmsCElement = new libxmljs.Element(doc, 'connectionfactory.TopicConnectionFactory', 'amqp://${admin.username}:${admin.password}@clientid/carbon?brokerlist=\'tcp://localhost:${jms.port}?retries=\'5\'%26connectdelay=\'50\'\'');
+
+		apim.root()
+			.get('//*[local-name()="ThrottlingConfigurations"]/*[local-name()="JMSConnectionDetails"]/*[local-name()="JMSConnectionParameters"]/*[local-name()="connectionfactory.TopicConnectionFactory"]')
+			.addNextSibling(jmsCElement);
+
+		let altered = removeDeclaration(apim.toString());
+
+		let apiKeyValidator = altered.substring(altered.indexOf('<APIKeyValidator>'), altered.indexOf('</APIKeyValidator>'));
+		let firstAlter = apiKeyValidator.substring(0, apiKeyValidator.indexOf('<ServerURL>')) +
+			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<ServerURL>'), apiKeyValidator.lastIndexOf('<ServerURL>'))) +
+			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<ServerURL>'), apiKeyValidator.indexOf('<KeyValidatorClientType>')) +
+			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<KeyValidatorClientType>'), apiKeyValidator.lastIndexOf('<KeyValidatorClientType>'))) +
+			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<KeyValidatorClientType>'), apiKeyValidator.indexOf('<EnableThriftServer>')) +
+			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<EnableThriftServer>'), apiKeyValidator.lastIndexOf('<EnableThriftServer>'))) +
+			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<EnableThriftServer>'), apiKeyValidator.length);
+
+		let tConf = altered.substring(altered.indexOf('<ThrottlingConfigurations>'), altered.indexOf('</ThrottlingConfigurations>'));
+		let trafficmanager = tConf.substring(tConf.indexOf('<TrafficManager>'), tConf.indexOf('</TrafficManager>'));
+		let sfirstAlter = trafficmanager.substring(0, trafficmanager.indexOf('<ReceiverUrlGroup>')) +
+			commentElement(trafficmanager.substring(trafficmanager.indexOf('<ReceiverUrlGroup>'), trafficmanager.lastIndexOf('<ReceiverUrlGroup>'))) +
+			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			trafficmanager.substring(trafficmanager.lastIndexOf('<ReceiverUrlGroup>'), trafficmanager.indexOf('<AuthUrlGroup>')) +
+			commentElement(trafficmanager.substring(trafficmanager.indexOf('<AuthUrlGroup>'), trafficmanager.lastIndexOf('<AuthUrlGroup>'))) +
+			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			trafficmanager.substring(trafficmanager.lastIndexOf('<AuthUrlGroup>'), trafficmanager.length);
+
+		let policyDeployer = tConf.substring(tConf.indexOf('<PolicyDeployer>'), tConf.indexOf('</PolicyDeployer>'));
+		let ssecondAlter = policyDeployer.substring(0, policyDeployer.indexOf('<Enabled>')) +
+			commentElement(policyDeployer.substring(policyDeployer.indexOf('<Enabled>'), policyDeployer.lastIndexOf('<Enabled>'))) +
+			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			policyDeployer.substring(policyDeployer.lastIndexOf('<Enabled>'), policyDeployer.indexOf('<ServiceURL>')) +
+			commentElement(policyDeployer.substring(policyDeployer.indexOf('<ServiceURL>'), policyDeployer.lastIndexOf('<ServiceURL>'))) +
+			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			policyDeployer.substring(policyDeployer.lastIndexOf('<ServiceURL>'), policyDeployer.length);
+
+		let jmsConnectionDetails = tConf.substring(tConf.indexOf('<JMSConnectionDetails>'), tConf.indexOf('</JMSConnectionDetails>'));
+		let sthirdAlter = jmsConnectionDetails.substring(0, jmsConnectionDetails.indexOf('<ServiceURL>')) +
+			_n +
+			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			jmsConnectionDetails.substring(jmsConnectionDetails.indexOf('<ServiceURL>'), jmsConnectionDetails.indexOf('<connectionfactory.TopicConnectionFactory>')) +
+			commentElement(jmsConnectionDetails.substring(jmsConnectionDetails.indexOf('<connectionfactory.TopicConnectionFactory>'), jmsConnectionDetails.lastIndexOf('<connectionfactory.TopicConnectionFactory>'))) +
+			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			jmsConnectionDetails.substring(jmsConnectionDetails.lastIndexOf('<connectionfactory.TopicConnectionFactory>'), jmsConnectionDetails.length);
+
+		let secondAlter = tConf.substring(0, tConf.indexOf('<TrafficManager>')) +
+			sfirstAlter +
+			tConf.substring(tConf.indexOf('</TrafficManager>'), tConf.indexOf('<PolicyDeployer>')) +
+			ssecondAlter +
+			tConf.substring(tConf.indexOf('</PolicyDeployer>'), tConf.indexOf('<JMSConnectionDetails>')) +
+			sthirdAlter +
+			tConf.substring(tConf.indexOf('</JMSConnectionDetails>'), tConf.length);
+
+		let _altered = altered.substring(0, altered.indexOf('<APIKeyValidator>')) +
+			firstAlter +
+			altered.substring(altered.indexOf('</APIKeyValidator>'), altered.indexOf('<ThrottlingConfigurations>')) +
+			secondAlter +
+			altered.substring(altered.indexOf('</ThrottlingConfigurations>'), altered.length);
+
+		fs.writeFileSync(path.join(p, pApiManager), prettify(_altered, { indent: 4 }) + '\n', _utf8);
 	}).then(() => {
 		configurePortOffset(p, _count);
 	});
