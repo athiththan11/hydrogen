@@ -48,16 +48,16 @@ let _p9443 = 9443;
 let _p9611 = 9611;
 let _p9711 = 9711;
 
-exports.configure = async function (log, args) {
+exports.configure = async function (ocli, args) {
 	if (args['multiple-gateway'])
-		configureMultipleGateway(log);
+		configureMultipleGateway(ocli);
 	else if (args.distributed)
-		configureDistributedDeployment(log);
+		configureDistributedDeployment(ocli);
 };
 
 // #region publish multiple gateway configurations
 
-async function configureMultipleGateway(log) {
+async function configureMultipleGateway(ocli) {
 	// clean .DS_Store in mac filesystem
 	if (fs.existsSync(path.join(_p, '.DS_Store'))) {
 		fs.removeSync(path.join(_p, '.DS_Store'));
@@ -75,15 +75,16 @@ async function configureMultipleGateway(log) {
 
 				_c['multiple-gateway'].sort().forEach(name => {
 					cli.action.start(`\tconfiguring ${d} as ${name}`);
-					fs.copySync(source, path.join(pDistributed, name));
-
-					if (name.startsWith('gateway')) {
-						configureMGW(path.join(pDistributed, name), _count);
-						++_count;
-					} else {
-						configureMGWAIO(path.join(pDistributed, name));
-					}
-					cli.action.stop();
+					fs.copy(source, path.join(pDistributed, name)).then(() => {
+						if (name.startsWith('gateway')) {
+							configureMGW(path.join(pDistributed, name), _count);
+							++_count;
+						} else {
+							configureMGWAIO(path.join(pDistributed, name));
+						}
+					}).then(() => {
+						cli.action.stop();
+					});
 				});
 			}
 		});
@@ -229,7 +230,7 @@ async function configureMGWCarbon(p, _count) {
 
 // #region distributed deployment 5 nodes
 
-function configureDistributedDeployment(log) {
+function configureDistributedDeployment(ocli) {
 	// clean .DS_Store in mac filesystem
 	if (fs.existsSync(path.join(_p, '.DS_Store'))) {
 		fs.removeSync(path.join(_p, '.DS_Store'));
@@ -245,25 +246,28 @@ function configureDistributedDeployment(log) {
 				let source = path.join(_p, d);
 				let _count = 0;
 
+				cli.action.start(`\tconfiguring ${d} as ${_c.distributed.sort()[0]}`);
 				_c.distributed.sort().forEach(name => {
-					cli.action.start(`\tconfiguring ${d} as ${name}`);
-					fs.copySync(source, path.join(pDistributed, name));
-
-					if (name === 'gateway') {
-						configureDGWay(path.join(pDistributed, name), _count);
-					} else if (name === 'keymanager') {
-						configureDKManager(path.join(pDistributed, name), _count);
-					} else if (name === 'publisher') {
-						configureDPub(path.join(pDistributed, name), _count);
-					} else if (name === 'store') {
-						configureDStore(path.join(pDistributed, name), _count);
-					} else if (name === 'trafficmanager') {
-						configureDTManager(path.join(pDistributed, name), _count);
-					} else {
-						configurePortOffset(path.join(pDistributed, name), _count);
-					}
-					++_count;
-					cli.action.stop();
+					fs.copy(source, path.join(pDistributed, name)).then(() => {
+						if (name === 'gateway') {
+							configureDGWay(path.join(pDistributed, name), _count);
+						} else if (name === 'keymanager') {
+							configureDKManager(path.join(pDistributed, name), _count);
+						} else if (name === 'publisher') {
+							configureDPub(path.join(pDistributed, name), _count);
+						} else if (name === 'store') {
+							configureDStore(path.join(pDistributed, name), _count);
+						} else if (name === 'trafficmanager') {
+							configureDTManager(path.join(pDistributed, name), _count);
+						} else {
+							configurePortOffset(path.join(pDistributed, name), _count);
+						}
+						++_count;
+					}).then(() => {
+						cli.action.stop();
+					}).then(() => {
+						cli.action.start(`\tconfiguring ${d} as ${name}`);
+					});
 				});
 			}
 		});
