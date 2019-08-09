@@ -12,10 +12,10 @@ class DistributeAMCommand extends Command {
 
 		if (flags['multiple-gatway']) {
 			this.log(`starting to configure apim-${version} ${datasource ? 'with ' + datasource + ' ' : ''}for multiple gateway setup`);
-			await Generic.configure(this.log, { 'multiple-gateway': true });
+			await Generic.configure(this, { 'multiple-gateway': true });
 		} else if (flags.distributed) {
 			this.log(`starting to configure apim-${version} ${datasource ? 'with ' + datasource + ' ' : ''}for distributed setup`);
-			await Generic.configure(this.log, { distributed: true });
+			await Generic.configure(this, { distributed: true });
 		}
 	}
 }
@@ -50,6 +50,7 @@ DistributeAMCommand.flags = {
 		hidden: false,
 		multiple: false,
 		required: false,
+		exclusive: ['distributed'],
 	}),
 	distributed: flags.boolean({
 		char: 'D',
@@ -57,6 +58,7 @@ DistributeAMCommand.flags = {
 		hidden: false,
 		multiple: false,
 		required: false,
+		exclusive: ['multiple-gatway'],
 	}),
 };
 
