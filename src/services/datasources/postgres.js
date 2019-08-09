@@ -7,6 +7,6 @@ args._defaultAutoCommit = 'true';
 args._driver = 'org.postgresql.Driver';
 args._validationQuery = 'SELECT 1; COMMIT';
 
-exports.configure = async function (log) {
-	configureDatasource(log, args);
+exports.configure = async function (ocli) {
+	configureDatasource(ocli, args);
 };

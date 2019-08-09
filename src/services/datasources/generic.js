@@ -28,7 +28,7 @@ let _utf8 = 'utf8';
 let _validationInterval = '30000';
 let _validationQuery = 'SELECT 1';
 
-exports.configureDatasource = async function (log, args) {
+exports.configureDatasource = async function (ocli, args) {
 	// variable set
 	_ = args._ ? args._ : _;
 
@@ -53,13 +53,13 @@ exports.configureDatasource = async function (log, args) {
 	_validationQuery = args._validationQuery ? args._validationQuery : _validationQuery;
 
 	cli.action.start('\taltering master-datasources.xml');
-	await parseXML(log, pMasterDatasource).then(master => {
-		alterMasterDatasource(log, master, pMasterDatasource).then(() => {
+	await parseXML(ocli, pMasterDatasource).then(master => {
+		alterMasterDatasource(ocli, master, pMasterDatasource).then(() => {
 			cli.action.stop();
 			cli.action.start('\taltering identity.xml');
 
-			parseXML(log, pIdentity).then(identity => {
-				alterIdentity(log, identity, pIdentity).then(() => {
+			parseXML(ocli, pIdentity).then(identity => {
+				alterIdentity(ocli, identity, pIdentity).then(() => {
 					cli.action.stop();
 				});
 			});
@@ -69,7 +69,7 @@ exports.configureDatasource = async function (log, args) {
 
 // #region master-datasource parser
 
-async function alterMasterDatasource(log, data, path) {
+async function alterMasterDatasource(ocli, data, path) {
 	let doc = new libxmljs.Document(data);
 	let genericElement = buildGenericDatasource(doc);
 	let element = '<datasource><name>WSO2_' + _.toUpperCase();
@@ -148,7 +148,7 @@ function buildGenericDatasource(doc) {
 
 // #region identity
 
-async function alterIdentity(log, data, path) {
+async function alterIdentity(ocli, data, path) {
 	let doc = new libxmljs.Document(data);
 	let genericElement = buildIdentity(doc);
 	let element = `<Name>${_carbon}`;

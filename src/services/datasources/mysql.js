@@ -7,6 +7,6 @@ args._defaultAutoCommit = 'false';
 args._driver = 'com.mysql.jdbc.Driver';
 args._validationQuery = 'SELECT 1';
 
-exports.configure = async function (log) {
-	configureDatasource(log, args);
+exports.configure = async function (ocli) {
+	configureDatasource(ocli, args);
 };
