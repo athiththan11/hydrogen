@@ -1,7 +1,7 @@
 const fs = require('fs');
 const libxmljs = require('libxmljs');
 
-exports.parseXML = async function (log, path) {
+exports.parseXML = async function (ocli, path) {
 	let jsonData = fs.readFileSync(path, 'utf8');
 	jsonData = libxmljs.parseXml(jsonData);
 
