@@ -24,6 +24,10 @@ jobs:
                   command: |
                       ./node_modules/.bin/nyc report --reporter text-lcov > coverage.lcov
                       curl -s https://codecov.io/bash | bash
+    node-11:
+        <<: *test
+        docker:
+            - image: circleci/node:11
     node-8:
         <<: *test
         docker:
@@ -50,9 +54,9 @@ workflows:
     version: 2
     'hydrogen-cli':
         jobs:
-            - node-latest
             - node-8
             - node-10
+            - node-11
             - cache:
                   filters:
                       tags:
