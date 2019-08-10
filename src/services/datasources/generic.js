@@ -1,13 +1,14 @@
 const fs = require('fs');
 const libxmljs = require('libxmljs');
+const path = require('path');
 const prettify = require('prettify-xml');
 const { cli } = require('cli-ux');
 
 const { parseXML, removeDeclaration } = require('../../utils/utility');
 
-let pMasterDatasource =
-	process.cwd() + '/repository/conf/datasources/master-datasources.xml';
-let pIdentity = process.cwd() + '/repository/conf/identity/identity.xml';
+let _p = process.cwd();
+let pMasterDatasource = '/repository/conf/datasources/master-datasources.xml';
+let pIdentity = '/repository/conf/identity/identity.xml';
 
 let _ = 'Generic';
 let _carbon = 'jdbc/WSO2' + _ + 'CarbonDB';
@@ -52,48 +53,47 @@ exports.configureDatasource = async function (ocli, args) {
 	_validationQuery = args._validationQuery ? args._validationQuery : _validationQuery;
 
 	cli.action.start('\taltering master-datasources.xml');
-	await parseXML(ocli, pMasterDatasource).then(master => {
-		alterMasterDatasource(ocli, master, pMasterDatasource).then(() => {
-			cli.action.stop();
-			cli.action.start('\taltering identity.xml');
-
-			parseXML(ocli, pIdentity).then(identity => {
-				alterIdentity(ocli, identity, pIdentity).then(() => {
-					cli.action.stop();
-				});
-			});
-		});
+	alterMasterDatasource(ocli).then(() => {
+		cli.action.stop();
+	}).then(() => {
+		cli.action.start('\taltering identity.xml');
+		alterIdentity(ocli);
+	}).then(() => {
+		cli.action.stop();
 	});
 };
 
 // #region master-datasource parser
 
-async function alterMasterDatasource(ocli, data, path) {
-	let doc = new libxmljs.Document(data);
-	let elem = '<datasource><name>WSO2_' + _.toUpperCase();
+async function alterMasterDatasource(ocli) {
+	await parseXML(null, path.join(_p, pMasterDatasource)).then(master => {
+		let doc = new libxmljs.Document(master);
+		let elem = '<datasource><name>WSO2_' + _.toUpperCase();
 
-	let genericElement = buildGenericDatasource(doc);
+		let genericElement = buildGenericDatasource(doc);
 
-	data.root()
-		.get('//*[local-name()="datasources"]/*[local-name()="datasource"]')
-		.addNextSibling(genericElement);
+		master.root()
+			.get('//*[local-name()="datasources"]/*[local-name()="datasource"]')
+			.addNextSibling(genericElement);
 
-	// remove xml declaration
-	let altered = removeDeclaration(data.toString());
+		// remove xml declaration
+		let altered = removeDeclaration(master.toString());
 
-	// extract generic altered
-	let arr = altered
-		.substring(altered.lastIndexOf(elem), altered.length)
-		.split('\n');
-	let generic = arr[0];
-	arr.shift();
+		// extract generic altered
+		let arr = altered
+			.substring(altered.lastIndexOf(elem), altered.length)
+			.split('\n');
 
-	let _altered = altered.substring(0, altered.lastIndexOf(elem)) +
-		`${_n}${_t}<!-- ${_comment} ${_description} -->\n${_t}` +
-		prettify(generic, { indent: 4 }) + '\n' +
-		arr.join('\n');
+		let generic = arr[0];
+		arr.shift();
 
-	fs.writeFileSync(path, prettify(_altered, { indent: 4 }) + '\n', _utf8);
+		let _altered = altered.substring(0, altered.lastIndexOf(elem)) +
+			`${_n}${_t}<!-- ${_comment} ${_description} -->\n${_t}` +
+			prettify(generic, { indent: 4 }) + '\n' +
+			arr.join('\n');
+
+		fs.writeFileSync(path.join(_p, pMasterDatasource), prettify(_altered, { indent: 4 }) + '\n', _utf8);
+	});
 }
 
 function buildGenericDatasource(doc) {
@@ -142,32 +142,30 @@ function buildGenericDatasource(doc) {
 
 // #region identity
 
-async function alterIdentity(ocli, data, path) {
-	let doc = new libxmljs.Document(data);
-	let elem = `<Name>${_carbon}`;
+async function alterIdentity(ocli) {
+	await parseXML(null, path.join(_p, pIdentity)).then(identity => {
+		let doc = new libxmljs.Document(identity);
+		let elem = `<Name>${_carbon}`;
 
-	let genericElement = buildIdentity(doc);
+		let genericElement = new libxmljs.Element(doc, 'Name', _carbon);
 
-	data.root()
-		.get('//*[local-name()="JDBCPersistenceManager"]/*[local-name()="DataSource"]/*[local-name()="Name"]')
-		.replace(genericElement);
+		identity.root()
+			.get('//*[local-name()="JDBCPersistenceManager"]/*[local-name()="DataSource"]/*[local-name()="Name"]')
+			.replace(genericElement);
 
-	let altered = data.toString();
+		let altered = identity.toString();
 
-	// replace utf encoding with latin1
-	altered = altered.replace('encoding="UTF-8"', 'encoding="ISO-8859-1"');
+		// replace utf encoding with latin1
+		altered = altered.replace('encoding="UTF-8"', 'encoding="ISO-8859-1"');
 
-	// extract generic config
-	let _altered = altered.substring(0, altered.lastIndexOf(elem)) +
-		`\n${_t}\t<!-- ${_comment} ${_description}. changed jdbc/WSO2CarbonDB -->\n${_t}\t` +
-		altered.substring(altered.lastIndexOf(elem)) +
-		'\n\n';
+		// extract generic config
+		let _altered = altered.substring(0, altered.lastIndexOf(elem)) +
+			`\n${_t}\t<!-- ${_comment} ${_description}. changed jdbc/WSO2CarbonDB -->\n${_t}\t` +
+			altered.substring(altered.lastIndexOf(elem)) +
+			'\n\n';
 
-	fs.writeFileSync(path, prettify(_altered, { indent: 4 }) + '\n', _utf8);
-}
-
-function buildIdentity(doc) {
-	return new libxmljs.Element(doc, 'Name', _carbon);
+		fs.writeFileSync(path.join(_p, pIdentity), prettify(_altered, { indent: 4 }) + '\n', _utf8);
+	});
 }
 
 // #endregion
