@@ -1,9 +1,8 @@
 const fs = require('fs');
 const libxmljs = require('libxmljs');
-const prettifyXml = require('prettify-xml');
+const prettify = require('prettify-xml');
 const { cli } = require('cli-ux');
 
-const { logger } = require('../../utils/logger');
 const { parseXML, removeDeclaration } = require('../../utils/utility');
 
 let pMasterDatasource =
@@ -71,35 +70,30 @@ exports.configureDatasource = async function (ocli, args) {
 
 async function alterMasterDatasource(ocli, data, path) {
 	let doc = new libxmljs.Document(data);
+	let elem = '<datasource><name>WSO2_' + _.toUpperCase();
+
 	let genericElement = buildGenericDatasource(doc);
-	let element = '<datasource><name>WSO2_' + _.toUpperCase();
 
 	data.root()
 		.get('//*[local-name()="datasources"]/*[local-name()="datasource"]')
 		.addNextSibling(genericElement);
 
 	// remove xml declaration
-	let config = removeDeclaration(data.toString());
+	let altered = removeDeclaration(data.toString());
 
-	// extract generic config
-	let arr = config
-		.substring(config.lastIndexOf(element), config.length)
+	// extract generic altered
+	let arr = altered
+		.substring(altered.lastIndexOf(elem), altered.length)
 		.split('\n');
 	let generic = arr[0];
-
 	arr.shift();
 
-	let altered =
-		config.substring(0, config.lastIndexOf(element)) +
+	let _altered = altered.substring(0, altered.lastIndexOf(elem)) +
 		`${_n}${_t}<!-- ${_comment} ${_description} -->\n${_t}` +
-		prettifyXml(generic, { indent: 4, newline: '\n' }).replace(
-			/\n/g,
-			`\n${_t}`
-		) +
-		'\n' +
+		prettify(generic, { indent: 4 }) + '\n' +
 		arr.join('\n');
 
-	fs.writeFileSync(path, altered, _utf8);
+	fs.writeFileSync(path, prettify(_altered, { indent: 4 }) + '\n', _utf8);
 }
 
 function buildGenericDatasource(doc) {
@@ -150,28 +144,26 @@ function buildGenericDatasource(doc) {
 
 async function alterIdentity(ocli, data, path) {
 	let doc = new libxmljs.Document(data);
+	let elem = `<Name>${_carbon}`;
+
 	let genericElement = buildIdentity(doc);
-	let element = `<Name>${_carbon}`;
 
 	data.root()
-		.get(
-			'//*[local-name()="JDBCPersistenceManager"]/*[local-name()="DataSource"]/*[local-name()="Name"]'
-		)
+		.get('//*[local-name()="JDBCPersistenceManager"]/*[local-name()="DataSource"]/*[local-name()="Name"]')
 		.replace(genericElement);
 
-	let config = data.toString();
+	let altered = data.toString();
 
 	// replace utf encoding with latin1
-	config = config.replace('encoding="UTF-8"', 'encoding="ISO-8859-1"');
+	altered = altered.replace('encoding="UTF-8"', 'encoding="ISO-8859-1"');
 
 	// extract generic config
-	let altered =
-		config.substring(0, config.lastIndexOf(element)) +
+	let _altered = altered.substring(0, altered.lastIndexOf(elem)) +
 		`\n${_t}\t<!-- ${_comment} ${_description}. changed jdbc/WSO2CarbonDB -->\n${_t}\t` +
-		config.substring(config.lastIndexOf(element)) +
+		altered.substring(altered.lastIndexOf(elem)) +
 		'\n\n';
 
-	fs.writeFileSync(path, altered, 'latin1');
+	fs.writeFileSync(path, prettify(_altered, { indent: 4 }) + '\n', _utf8);
 }
 
 function buildIdentity(doc) {

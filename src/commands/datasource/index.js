@@ -1,16 +1,16 @@
-const { Command, flags } = require('@oclif/command');
+const { Command } = require('@oclif/command');
 
-class DistributeCommand extends Command {
+class DatasoureCommand extends Command {
 	async run() {
-		await this._help();
+		this._help();
 	}
 }
 
-DistributeCommand.usage = [
+DatasoureCommand.usage = [
 	'[COMMAND]',
 ];
 
-DistributeCommand.description = `Alter datasources of WSO2 products (fresh-pack) with supported datasource vendors
+DatasoureCommand.description = `Alter datasources of WSO2 products (fresh-pack) with supported datasource vendors
 ...
 Alter datasource configurations of WSO2 products based on your preference.
 
@@ -18,6 +18,6 @@ List all available distribute commands using
 $ hydrogen datasource --help
 `;
 
-DistributeCommand.examples = ['$ hydrogen datasource:is [FLAGS] [ARGS]'];
+DatasoureCommand.examples = ['$ hydrogen datasource:is [FLAGS] [ARGS]'];
 
-module.exports = DistributeCommand;
+module.exports = DatasoureCommand;

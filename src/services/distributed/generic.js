@@ -4,7 +4,6 @@ const path = require('path');
 const prettify = require('prettify-xml');
 const { cli } = require('cli-ux');
 
-const { logger } = require('../../utils/logger');
 const { parseXML, removeDeclaration } = require('../../utils/utility');
 
 let pApiManager = '/repository/conf/api-manager.xml';

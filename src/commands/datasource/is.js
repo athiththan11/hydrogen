@@ -1,13 +1,12 @@
 const { Command, flags } = require('@oclif/command');
-const { logger } = require('../../utils/logger');
 
 const Postgres = require('../../services/datasources/postgres');
 const MySQL = require('../../services/datasources/mysql');
 const Oracle = require('../../services/datasources/oracle');
 
-class ISCommand extends Command {
+class DatasourceISCommand extends Command {
 	async run() {
-		const { flags } = this.parse(ISCommand);
+		const { flags } = this.parse(DatasourceISCommand);
 		const version = flags.version;
 		const datasource = flags.datasource;
 
@@ -27,11 +26,11 @@ class ISCommand extends Command {
 	}
 }
 
-ISCommand.usage = [
+DatasourceISCommand.usage = [
 	'datasource:is [FLAGS] [ARGS]',
 ];
 
-ISCommand.description = `Alter datasources of WSO2 products (fresh-pack) with supported datasource vendors
+DatasourceISCommand.description = `Alter datasources of WSO2 products (fresh-pack) with supported datasource vendors
 ...
 Alter datasource configurations of WSO2 products based on your preference.
 
@@ -40,12 +39,12 @@ of available datasources supported. To replace the default shipped H2 datasource
 use --replace (-R) and pass supported datasource with --datasource flag (--datasource mysql).
 `;
 
-ISCommand.examples = [
+DatasourceISCommand.examples = [
 	`Replace H2 with Postgres
 $ hydrogen datasource:is -R -v 5.7 -d postgres`,
 ];
 
-ISCommand.flags = {
+DatasourceISCommand.flags = {
 	version: flags.string({
 		char: 'v',
 		description: 'product version. supported versions are [is >= 5.7]',
@@ -70,4 +69,4 @@ ISCommand.flags = {
 	}),
 };
 
-module.exports = ISCommand;
+module.exports = DatasourceISCommand;

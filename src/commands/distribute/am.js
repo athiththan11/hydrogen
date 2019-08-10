@@ -1,6 +1,4 @@
 const { Command, flags } = require('@oclif/command');
-const { cli } = require('cli-ux');
-const { logger } = require('../../utils/logger');
 
 const Generic = require('../../services/distributed/generic');
 
@@ -10,7 +8,7 @@ class DistributeAMCommand extends Command {
 		const version = flags.version;
 		const datasource = flags.datasource;
 
-		if (flags['multiple-gatway']) {
+		if (flags['multiple-gateway']) {
 			this.log(`starting to configure apim-${version} ${datasource ? 'with ' + datasource + ' ' : ''}for multiple gateway setup`);
 			await Generic.configure(this, { 'multiple-gateway': true });
 		} else if (flags.distributed) {
@@ -44,7 +42,7 @@ DistributeAMCommand.flags = {
 		required: false,
 		options: ['postgres', 'mysql', 'oracle'],
 	}),
-	'multiple-gatway': flags.boolean({
+	'multiple-gateway': flags.boolean({
 		char: 'M',
 		description: 'publish through multiple gateway',
 		hidden: false,

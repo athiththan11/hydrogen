@@ -1,8 +1,8 @@
-const { Command, flags } = require('@oclif/command');
+const { Command } = require('@oclif/command');
 
 class DistributeCommand extends Command {
 	async run() {
-		await this._help();
+		this._help();
 	}
 }
 
