@@ -16,11 +16,11 @@ class DatasourceISCommand extends Command {
 			this.log(`starting to alter wso2is-${version} with ${datasource} configurations`);
 
 			if (datasource === 'postgres')
-				await Postgres.configure(this);
+				await Postgres.configure(this, 'is');
 			else if (datasource === 'mysql')
-				await MySQL.configure(this);
+				await MySQL.configure(this, 'is');
 			else if (datasource === 'oracle') {
-				await Oracle.configure(this);
+				await Oracle.configure(this, 'is');
 			}
 		}
 	}
