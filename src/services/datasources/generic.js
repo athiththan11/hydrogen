@@ -67,7 +67,7 @@ exports.configureDatasource = async function (ocli, args, product) {
 		});
 	} else if (product === 'am') {
 		cli.action.start('\taltering master-datasources.xml');
-		alterAMMasterDatasource(ocli).then(() => {
+		alterAMMasterDatasource(ocli, _p).then(() => {
 			cli.action.stop();
 		});
 	}
@@ -75,8 +75,8 @@ exports.configureDatasource = async function (ocli, args, product) {
 
 // #region apim datasource implementations
 
-async function alterAMMasterDatasource(ocli) {
-	await parseXML(null, path.join(_p, pMasterDatasource)).then(master => {
+async function alterAMMasterDatasource(ocli, p) {
+	await parseXML(null, path.join(p, pMasterDatasource)).then(master => {
 		let doc = new libxmljs.Document(master);
 		let genericElement = buildAMDatasource(doc);
 
@@ -104,7 +104,7 @@ async function alterAMMasterDatasource(ocli) {
 			prettify(altered.substring(altered.indexOf('<datasource><name>WSO2AM_DB</name>'), altered.indexOf('</definition></datasource>') + '</definition></datasource>'.length), { indent: 4 }) +
 			altered.substring(altered.indexOf('</definition></datasource>') + '</definition></datasource>'.length, altered.length);
 
-		fs.writeFileSync(path.join(_p, pMasterDatasource), _altered, _utf8);
+		fs.writeFileSync(path.join(p, pMasterDatasource), _altered, _utf8);
 	});
 }
 
