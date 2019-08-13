@@ -9,8 +9,11 @@ const logFormat = format.printf(({ level, message, timestamp }) => {
 const logger = createLogger({
 	format: format.combine(format.colorize(), format.timestamp(), format.align(), logFormat),
 	transports: [
-		new transports.File({ filename: '/Users/athiththan/Athiththan/Projects/GitHub/hydrogen/logs/error.log', level: 'error' }),
-		new transports.File({ filename: '/Users/athiththan/Athiththan/Projects/GitHub/hydrogen/logs/hydrogen.log' }),
+		// new transports.File({ filename: '/Users/athiththan/Athiththan/Projects/GitHub/hydrogen/logs/error.log', level: 'error' }),
+		// new transports.File({ filename: '/Users/athiththan/Athiththan/Projects/GitHub/hydrogen/logs/hydrogen.log' }),
+		new winston.transports.Console({
+			format: format.combine(format.timestamp(), logFormat),
+		}),
 	],
 });
 
