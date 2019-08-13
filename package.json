@@ -11,6 +11,7 @@
 		"@oclif/command": "1.5.18",
 		"@oclif/config": "1.13.2",
 		"@oclif/plugin-help": "2.2.0",
+		"cli-table": "0.3.1",
 		"cli-ux": "5.3.1",
 		"dockerode": "2.5.8",
 		"fs-extra": "8.1.0",
