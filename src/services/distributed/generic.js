@@ -10,8 +10,10 @@ let pApiManager = '/repository/conf/api-manager.xml';
 let pAxis2 = '/repository/conf/axis2/axis2.xml';
 let pAxis2TM = '/repository/conf/axis2/axis2_TM.xml';
 let pCarbon = '/repository/conf/carbon.xml';
+let pMasterDatasource = '/repository/conf/datasources/master-datasources.xml';
 let pRegistry = '/repository/conf/registry.xml';
 let pRegistryTM = '/repository/conf/registry_TM.xml';
+let pUserMgt = '/repository/conf/user-mgt.xml';
 
 let _c = {
 	'multiple-gateway': [
@@ -47,6 +49,21 @@ let _p9443 = 9443;
 let _p9611 = 9611;
 let _p9711 = 9711;
 
+// datasource properties
+let _name = 'WSO2AM_DB';
+let _description = 'The datasource used for the API Manager database';
+let _jndiName = 'jdbc/WSO2AM_DB';
+let _connectionUrl = '{specify connection url}';
+let _username = 'hydrogen';
+let _driver = '{specify jdbc driver}';
+let _maxActive = '80';
+let _maxWait = '60000';
+let _minIdle = '5';
+let _testOnBorrow = 'true';
+let _validationInterval = '30000';
+let _validationQuery = 'SELECT 1';
+let _defaultAutoCommit = 'false';
+
 exports.configure = async function (ocli, args) {
 	if (args['multiple-gateway'])
 		configureMultipleGateway(ocli);
@@ -70,26 +87,33 @@ async function configureMultipleGateway(ocli) {
 				fs.mkdirSync(pDistributed);
 
 				let source = path.join(_p, d);
-				let _count = 1;
+				let _count = 0;
 
-				_c['multiple-gateway'].sort().forEach(name => {
-					cli.action.start(`\tconfiguring ${d} as ${name}`);
-					fs.copy(source, path.join(pDistributed, name)).then(() => {
-						if (name.startsWith('gateway')) {
-							configureMGW(path.join(pDistributed, name), _count);
-							++_count;
-						} else {
-							configureMGWAIO(path.join(pDistributed, name));
-						}
-					}).then(() => {
-						cli.action.stop();
-					});
-				});
+				traverseMultipleGateway(d, source, pDistributed, _count);
 			}
 		});
 	}
 }
 
+function traverseMultipleGateway(product, source, pDistributed, count) {
+	if (count < _c['multiple-gateway'].length) {
+		var name = _c['multiple-gateway'].sort()[count];
+		cli.action.start(`\tconfiguring ${product} as ${name}`);
+		fs.copy(source, path.join(pDistributed, name)).then(() => {
+			if (name.startsWith('gateway')) {
+				configureMGW(path.join(pDistributed, name), count);
+			} else {
+				configureMGWAIO(path.join(pDistributed, name));
+			}
+		}).then(() => {
+			cli.action.stop();
+		}).then(() => {
+			traverseMultipleGateway(product, source, pDistributed, ++count);
+		});
+	}
+}
+
+// multiple-gateway all-in-one
 async function configureMGWAIO(p) {
 	await parseXML(null, path.join(p, pApiManager)).then(apim => {
 		let doc = new libxmljs.Document(apim);
@@ -245,30 +269,32 @@ function configureDistributedDeployment(ocli) {
 				let source = path.join(_p, d);
 				let _count = 0;
 
-				cli.action.start(`\tconfiguring ${d} as ${_c.distributed.sort()[0]}`);
-				_c.distributed.sort().forEach(name => {
-					fs.copy(source, path.join(pDistributed, name)).then(() => {
-						if (name === 'gateway') {
-							configureDGWay(path.join(pDistributed, name), _count);
-						} else if (name === 'keymanager') {
-							configureDKManager(path.join(pDistributed, name), _count);
-						} else if (name === 'publisher') {
-							configureDPub(path.join(pDistributed, name), _count);
-						} else if (name === 'store') {
-							configureDStore(path.join(pDistributed, name), _count);
-						} else if (name === 'trafficmanager') {
-							configureDTManager(path.join(pDistributed, name), _count);
-						} else {
-							configurePortOffset(path.join(pDistributed, name), _count);
-						}
-						++_count;
-					}).then(() => {
-						cli.action.stop();
-					}).then(() => {
-						cli.action.start(`\tconfiguring ${d} as ${name}`);
-					});
-				});
+				traverseDistributedDeployment(d, source, pDistributed, _count);
 			}
+		});
+	}
+}
+
+function traverseDistributedDeployment(product, source, pDistributed, count) {
+	if (count < _c.distributed.length) {
+		var name = _c.distributed.sort()[count];
+		cli.action.start(`\tconfiguring ${product} as ${name}`);
+		fs.copy(source, path.join(pDistributed, name)).then(() => {
+			if (name === 'gateway') {
+				configureDGWay(path.join(pDistributed, name), count);
+			} else if (name === 'keymanager') {
+				configureDKManager(path.join(pDistributed, name), count);
+			} else if (name === 'publisher') {
+				configureDPub(path.join(pDistributed, name), count);
+			} else if (name === 'store') {
+				configureDStore(path.join(pDistributed, name), count);
+			} else if (name === 'trafficmanager') {
+				configureDTManager(path.join(pDistributed, name), count);
+			}
+		}).then(() => {
+			cli.action.stop();
+		}).then(() => {
+			traverseDistributedDeployment(product, source, pDistributed, ++count);
 		});
 	}
 }
@@ -454,6 +480,56 @@ async function configureDKManager(p, _count) {
 		fs.writeFileSync(path.join(p, pApiManager), prettify(_altered, { indent: 4 }) + '\n', _utf8);
 	}).then(() => {
 		configurePortOffset(p, _count);
+	}).then(() => {
+		var args = {
+			_name,
+			_description,
+			_jndiName,
+			_connectionUrl: 'jdbc:mysql://localhost:3306/apimgtdb?autoReconnect=true&amp;useSSL=false',
+			_username,
+			_defaultAutoCommit,
+			_driver: 'com.mysql.jdbc.Driver',
+			_maxActive,
+			_maxWait,
+			_testOnBorrow,
+			_validationQuery,
+			_validationInterval,
+		};
+
+		alterMasterDSAM(p, args);
+	}).then(() => {
+		var args = {
+			_name: 'WSO2UM_DB',
+			_description: 'The datasource used by user manager',
+			_jndiName: 'jdbc/WSO2UM_DB',
+			_connectionUrl: 'jdbc:mysql://localhost:3306/userdb?autoReconnect=true&amp;useSSL=false',
+			_username,
+			_driver: 'com.mysql.jdbc.Driver',
+			_maxActive: '50',
+			_maxWait,
+			_testOnBorrow: 'true',
+			_validationQuery: 'SELECT 1',
+			_validationInterval: '30000',
+		};
+
+		alterMasterDSUM(p, args);
+	}).then(() => {
+		var args = {
+			_name: 'WSO2REG_DB',
+			_description: 'The datasource used by the registry',
+			_jndiName: 'jdbc/WSO2REG_DB',
+			_connectionUrl:
+				'jdbc:mysql://localhost:3306/regdb?autoReconnect=true&amp;useSSL=false',
+			_username,
+			_driver: 'com.mysql.jdbc.Driver',
+			_maxActive: '50',
+			_maxWait,
+			_testOnBorrow: 'true',
+			_validationQuery: 'SELECT 1',
+			_validationInterval: '30000',
+		};
+
+		alterMasterDSREG(p, args);
 	});
 }
 
@@ -605,6 +681,56 @@ async function configureDPub(p, _count) {
 		fs.writeFileSync(path.join(p, pApiManager), prettify(_altered, { indent: 4 }) + '\n', _utf8);
 	}).then(() => {
 		configurePortOffset(p, _count);
+	}).then(() => {
+		var args = {
+			_name,
+			_description,
+			_jndiName,
+			_connectionUrl: 'jdbc:mysql://localhost:3306/apimgtdb?autoReconnect=true&amp;useSSL=false',
+			_username,
+			_defaultAutoCommit,
+			_driver: 'com.mysql.jdbc.Driver',
+			_maxActive,
+			_maxWait,
+			_testOnBorrow,
+			_validationQuery,
+			_validationInterval,
+		};
+
+		alterMasterDSAM(p, args);
+	}).then(() => {
+		var args = {
+			_name: 'WSO2UM_DB',
+			_description: 'The datasource used by user manager',
+			_jndiName: 'jdbc/WSO2UM_DB',
+			_connectionUrl: 'jdbc:mysql://localhost:3306/userdb?autoReconnect=true&amp;useSSL=false',
+			_username,
+			_driver: 'com.mysql.jdbc.Driver',
+			_maxActive: '50',
+			_maxWait,
+			_testOnBorrow: 'true',
+			_validationQuery: 'SELECT 1',
+			_validationInterval: '30000',
+		};
+
+		alterMasterDSUM(p, args);
+	}).then(() => {
+		var args = {
+			_name: 'WSO2REG_DB',
+			_description: 'The datasource used by the registry',
+			_jndiName: 'jdbc/WSO2REG_DB',
+			_connectionUrl:
+				'jdbc:mysql://localhost:3306/regdb?autoReconnect=true&amp;useSSL=false',
+			_username,
+			_driver: 'com.mysql.jdbc.Driver',
+			_maxActive: '50',
+			_maxWait,
+			_testOnBorrow: 'true',
+			_validationQuery: 'SELECT 1',
+			_validationInterval: '30000',
+		};
+
+		alterMasterDSREG(p, args);
 	});
 }
 
@@ -740,6 +866,56 @@ async function configureDStore(p, _count) {
 		fs.writeFileSync(path.join(p, pApiManager), prettify(_altered, { indent: 4 }) + '\n', _utf8);
 	}).then(() => {
 		configurePortOffset(p, _count);
+	}).then(() => {
+		var args = {
+			_name,
+			_description,
+			_jndiName,
+			_connectionUrl: 'jdbc:mysql://localhost:3306/apimgtdb?autoReconnect=true&amp;useSSL=false',
+			_username,
+			_defaultAutoCommit,
+			_driver: 'com.mysql.jdbc.Driver',
+			_maxActive,
+			_maxWait,
+			_testOnBorrow,
+			_validationQuery,
+			_validationInterval,
+		};
+
+		alterMasterDSAM(p, args);
+	}).then(() => {
+		var args = {
+			_name: 'WSO2UM_DB',
+			_description: 'The datasource used by user manager',
+			_jndiName: 'jdbc/WSO2UM_DB',
+			_connectionUrl: 'jdbc:mysql://localhost:3306/userdb?autoReconnect=true&amp;useSSL=false',
+			_username,
+			_driver: 'com.mysql.jdbc.Driver',
+			_maxActive: '50',
+			_maxWait,
+			_testOnBorrow: 'true',
+			_validationQuery: 'SELECT 1',
+			_validationInterval: '30000',
+		};
+
+		alterMasterDSUM(p, args);
+	}).then(() => {
+		var args = {
+			_name: 'WSO2REG_DB',
+			_description: 'The datasource used by the registry',
+			_jndiName: 'jdbc/WSO2REG_DB',
+			_connectionUrl:
+				'jdbc:mysql://localhost:3306/regdb?autoReconnect=true&amp;useSSL=false',
+			_username,
+			_driver: 'com.mysql.jdbc.Driver',
+			_maxActive: '50',
+			_maxWait,
+			_testOnBorrow: 'true',
+			_validationQuery: 'SELECT 1',
+			_validationInterval: '30000',
+		};
+
+		alterMasterDSREG(p, args);
 	});
 }
 
@@ -774,6 +950,152 @@ async function configureDTManager(p, _count) {
 	}).then(() => {
 		configurePortOffset(p, _count);
 	});
+}
+
+async function alterMasterDSAM(p, args) {
+	await parseXML(null, path.join(p, pMasterDatasource)).then(master => {
+		let doc = new libxmljs.Document(master);
+		let genericElement = buildDatasource(doc, args);
+
+		let amElement = master.root()
+			.get('//*[local-name()="datasources"]/*[local-name()="datasource"][name="WSO2AM_DB"]');
+
+		let commentElement = new libxmljs.Comment(doc, amElement.toString());
+
+		master.root()
+			.get('//*[local-name()="datasources"]/*[local-name()="datasource"][name="WSO2AM_DB"]')
+			.addNextSibling(genericElement);
+
+		master.root()
+			.get('//*[local-name()="datasources"]/*[local-name()="datasource"][name="WSO2AM_DB"][1]')
+			.remove();
+
+		master.root()
+			.get('//*[local-name()="datasources"]/*[local-name()="datasource"][name="WSO2AM_DB"]')
+			.addPrevSibling(commentElement);
+
+		let altered = removeDeclaration(master.toString());
+
+		let _altered = altered.substring(0, altered.indexOf('<datasource><name>WSO2AM_DB</name>')) +
+			`${_n}<!-- ${_comment} datasource added -->\n` +
+			prettify(altered.substring(altered.indexOf('<datasource><name>WSO2AM_DB</name>'), altered.indexOf('</definition></datasource>') + '</definition></datasource>'.length), { indent: 4 }) +
+			altered.substring(altered.indexOf('</definition></datasource>') + '</definition></datasource>'.length, altered.length);
+
+		fs.writeFileSync(path.join(p, pMasterDatasource), prettify(_altered, { indent: 4 }), _utf8);
+	});
+}
+
+async function alterMasterDSUM(p, args) {
+	await parseXML(null, path.join(p, pMasterDatasource)).then(master => {
+		let doc = new libxmljs.Document(master);
+		let genericElement = buildDatasource(doc, args);
+
+		master.root()
+			.get('//*[local-name()="datasources"]/*[local-name()="datasource"][name="WSO2AM_DB"]')
+			.addNextSibling(genericElement);
+
+		let altered = removeDeclaration(master.toString());
+
+		let _altered = altered.substring(0, altered.indexOf(`<datasource><name>${args._name}</name>`)) +
+			`${_n}<!-- ${_comment} datasource added -->\n` +
+			prettify(altered.substring(altered.indexOf(`<datasource><name>${args._name}</name>`), altered.indexOf('</definition></datasource>') + '</definition></datasource>'.length), { indent: 4 }) +
+			altered.substring(altered.indexOf('</definition></datasource>') + '</definition></datasource>'.length, altered.length);
+
+		fs.writeFileSync(path.join(p, pMasterDatasource), prettify(_altered, { indent: 4 }), _utf8);
+	});
+}
+
+async function alterMasterDSREG(p, args) {
+	await parseXML(null, path.join(p, pMasterDatasource)).then(master => {
+		let doc = new libxmljs.Document(master);
+		let genericElement = buildDatasource(doc, args);
+
+		master.root()
+			.get('//*[local-name()="datasources"]/*[local-name()="datasource"][name="WSO2UM_DB"]')
+			.addNextSibling(genericElement);
+
+		let altered = removeDeclaration(master.toString());
+
+		let _altered = altered.substring(0, altered.indexOf(`<datasource><name>${args._name}</name>`)) +
+			`${_n}<!-- ${_comment} datasource added -->\n` +
+			prettify(altered.substring(altered.indexOf(`<datasource><name>${args._name}</name>`), altered.indexOf('</definition></datasource>') + '</definition></datasource>'.length), { indent: 4 }) +
+			altered.substring(altered.indexOf('</definition></datasource>') + '</definition></datasource>'.length, altered.length);
+
+		fs.writeFileSync(path.join(p, pMasterDatasource), prettify(_altered, { indent: 4 }), _utf8);
+	});
+}
+
+function buildDatasource(doc, args) {
+	let genericElement = new libxmljs.Element(doc, 'datasource');
+
+	if (args._defaultAutoCommit)
+		genericElement
+			.node('name', args._name)
+			.parent()
+			.node('description', args._description)
+			.parent()
+			.node('jndiConfig')
+			.node('name', args._jndiName)
+			.parent()
+			.parent()
+			.node('definition')
+			.attr({ type: 'RDBMS' })
+			.node('configuration')
+			.node('url', args._connectionUrl)
+			.parent()
+			.node('username', args._username)
+			.parent()
+			.node('password', 'hydrogen')
+			.parent()
+			.node('driverClassName', args._driver)
+			.parent()
+			.node('maxActive', args._maxActive)
+			.parent()
+			.node('maxWait', args._maxWait)
+			.parent()
+			.node('minIdle', args._minIdle)
+			.parent()
+			.node('testOnBorrow', args._testOnBorrow)
+			.parent()
+			.node('validationQuery', args._validationQuery)
+			.parent()
+			.node('validationInterval', args._validationInterval)
+			.parent()
+			.node('defaultAutoCommit', args._defaultAutoCommit);
+	else
+		genericElement
+			.node('name', args._name)
+			.parent()
+			.node('description', args._description)
+			.parent()
+			.node('jndiConfig')
+			.node('name', args._jndiName)
+			.parent()
+			.parent()
+			.node('definition')
+			.attr({ type: 'RDBMS' })
+			.node('configuration')
+			.node('url', args._connectionUrl)
+			.parent()
+			.node('username', args._username)
+			.parent()
+			.node('password', 'hydrogen')
+			.parent()
+			.node('driverClassName', args._driver)
+			.parent()
+			.node('maxActive', args._maxActive)
+			.parent()
+			.node('maxWait', args._maxWait)
+			.parent()
+			.node('minIdle', args._minIdle)
+			.parent()
+			.node('testOnBorrow', args._testOnBorrow)
+			.parent()
+			.node('validationQuery', args._validationQuery)
+			.parent()
+			.node('validationInterval', args._validationInterval);
+
+	return genericElement;
 }
 
 // #endregion
