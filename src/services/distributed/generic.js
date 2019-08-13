@@ -3,7 +3,9 @@ const libxmljs = require('libxmljs');
 const path = require('path');
 const prettify = require('prettify-xml');
 const { cli } = require('cli-ux');
+const Table = require('cli-table');
 
+const { logger } = require('../../utils/logger');
 const { parseXML, removeDeclaration } = require('../../utils/utility');
 
 let pApiManager = '/repository/conf/api-manager.xml';
@@ -89,16 +91,18 @@ async function configureMultipleGateway(ocli) {
 				let source = path.join(_p, d);
 				let _count = 0;
 
-				traverseMultipleGateway(d, source, pDistributed, _count);
+				cli.log('\n');
+				traverseMultipleGateway(ocli, d, source, pDistributed, _count);
 			}
 		});
 	}
 }
 
-function traverseMultipleGateway(product, source, pDistributed, count) {
+// eslint-disable-next-line max-params
+function traverseMultipleGateway(ocli, product, source, pDistributed, count) {
 	if (count < _c['multiple-gateway'].length) {
 		var name = _c['multiple-gateway'].sort()[count];
-		cli.action.start(`\tconfiguring ${product} as ${name}`);
+		cli.action.start(`configuring ${product} as ${name}`);
 		fs.copy(source, path.join(pDistributed, name)).then(() => {
 			if (name.startsWith('gateway')) {
 				configureMGW(path.join(pDistributed, name), count);
@@ -108,9 +112,39 @@ function traverseMultipleGateway(product, source, pDistributed, count) {
 		}).then(() => {
 			cli.action.stop();
 		}).then(() => {
-			traverseMultipleGateway(product, source, pDistributed, ++count);
+			traverseMultipleGateway(ocli, product, source, pDistributed, ++count);
 		});
+	} else {
+		buildMultipleGatewayDoc(ocli);
 	}
+}
+
+function buildMultipleGatewayDoc(ocli) {
+	const table = new Table({
+		style: {
+			head: ['reset'],
+		},
+		head: [
+			'node',
+			'port-offset',
+			'port',
+		],
+		chars: {
+			mid: '',
+			'left-mid': '',
+			'mid-mid': '',
+			'right-mid': '',
+		},
+	});
+
+	table.push(
+		['', '', ''],
+		['allinone', '0', '9443'],
+		['gatewayone', '1', '9444'],
+		['gatewaytwo', '2', '9445'],
+	);
+
+	ocli.log('\n' + table.toString());
 }
 
 // multiple-gateway all-in-one
@@ -269,16 +303,20 @@ function configureDistributedDeployment(ocli) {
 				let source = path.join(_p, d);
 				let _count = 0;
 
-				traverseDistributedDeployment(d, source, pDistributed, _count);
+				// FIXME: testing
+				// alterUserMgt('/Users/athiththan/Athiththan/Projects/Samples/hydrogen/distributed/test-cases/distribute/am/dist/wso2am-2.6.0');
+				cli.log('\n');
+				traverseDistributedDeployment(ocli, d, source, pDistributed, _count);
 			}
 		});
 	}
 }
 
-function traverseDistributedDeployment(product, source, pDistributed, count) {
+// eslint-disable-next-line max-params
+function traverseDistributedDeployment(ocli, product, source, pDistributed, count) {
 	if (count < _c.distributed.length) {
 		var name = _c.distributed.sort()[count];
-		cli.action.start(`\tconfiguring ${product} as ${name}`);
+		cli.action.start(`configuring ${product} as ${name}`);
 		fs.copy(source, path.join(pDistributed, name)).then(() => {
 			if (name === 'gateway') {
 				configureDGWay(path.join(pDistributed, name), count);
@@ -294,9 +332,41 @@ function traverseDistributedDeployment(product, source, pDistributed, count) {
 		}).then(() => {
 			cli.action.stop();
 		}).then(() => {
-			traverseDistributedDeployment(product, source, pDistributed, ++count);
+			traverseDistributedDeployment(ocli, product, source, pDistributed, ++count);
 		});
+	} else {
+		buildDistributedDeploymentDoc(ocli);
 	}
+}
+
+function buildDistributedDeploymentDoc(ocli) {
+	const table = new Table({
+		style: {
+			head: ['reset'],
+		},
+		head: [
+			'node',
+			'port-offset',
+			'port',
+		],
+		chars: {
+			mid: '',
+			'left-mid': '',
+			'mid-mid': '',
+			'right-mid': '',
+		},
+	});
+
+	table.push(
+		['', '', ''],
+		['gateway', '0', '9443'],
+		['keymanager', '1', '9444'],
+		['publisher', '2', '9445'],
+		['store', '3', '9446'],
+		['trafficmanager', '4', '9447']
+	);
+
+	ocli.log('\n' + table.toString());
 }
 
 async function configureDGWay(p, _count) {
@@ -530,6 +600,8 @@ async function configureDKManager(p, _count) {
 		};
 
 		alterMasterDSREG(p, args);
+	}).then(() => {
+		alterUserMgt(p);
 	});
 }
 
@@ -731,6 +803,8 @@ async function configureDPub(p, _count) {
 		};
 
 		alterMasterDSREG(p, args);
+	}).then(() => {
+		alterUserMgt(p);
 	});
 }
 
@@ -916,6 +990,8 @@ async function configureDStore(p, _count) {
 		};
 
 		alterMasterDSREG(p, args);
+	}).then(() => {
+		alterUserMgt(p);
 	});
 }
 
@@ -951,6 +1027,45 @@ async function configureDTManager(p, _count) {
 		configurePortOffset(p, _count);
 	});
 }
+
+// #region user-mgt elements, alterations and configurations
+
+async function alterUserMgt(p) {
+	await parseXML(null, path.join(p, pUserMgt)).then(usermgt => {
+		let doc = new libxmljs.Document(usermgt);
+		let genericElement = new libxmljs.Element(doc, 'Property', 'jdbc/WSO2UM_DB').attr({ name: 'dataSource' });
+
+		let dsElement = usermgt.root()
+			.get('//*[local-name()="Realm"]/*[local-name()="Configuration"]/*[local-name()="Property"][@name="dataSource"]');
+
+		let commentElement = new libxmljs.Comment(doc, dsElement.toString());
+
+		usermgt.root()
+			.get('//*[local-name()="Realm"]/*[local-name()="Configuration"]/*[local-name()="Property"][@name="dataSource"]')
+			.addNextSibling(genericElement);
+
+		usermgt.root()
+			.get('//*[local-name()="Realm"]/*[local-name()="Configuration"]/*[local-name()="Property"][@name="dataSource"][1]')
+			.remove();
+
+		usermgt.root()
+			.get('//*[local-name()="Realm"]/*[local-name()="Configuration"]/*[local-name()="Property"][@name="dataSource"]')
+			.addPrevSibling(commentElement);
+
+		let altered = usermgt.toString();
+
+		let _altered = altered.substring(0, altered.indexOf('<Property name="dataSource">jdbc/WSO2UM_DB')) +
+			`${_n}<!-- ${_comment} datasource changed -->\n` +
+			altered.substring(altered.indexOf('<Property name="dataSource">jdbc/WSO2UM_DB'), altered.length);
+		// let _altered = '';
+
+		fs.writeFileSync(path.join(p, pUserMgt), prettify(_altered, { indent: 4 }) + '\n', _utf8);
+	});
+}
+
+// #endregion
+
+// #region datasource elements, alterations and configurations
 
 async function alterMasterDSAM(p, args) {
 	await parseXML(null, path.join(p, pMasterDatasource)).then(master => {
@@ -1097,6 +1212,8 @@ function buildDatasource(doc, args) {
 
 	return genericElement;
 }
+
+// #endregion
 
 // #endregion
 
