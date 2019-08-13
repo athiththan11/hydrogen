@@ -303,8 +303,6 @@ function configureDistributedDeployment(ocli) {
 				let source = path.join(_p, d);
 				let _count = 0;
 
-				// FIXME: testing
-				// alterUserMgt('/Users/athiththan/Athiththan/Projects/Samples/hydrogen/distributed/test-cases/distribute/am/dist/wso2am-2.6.0');
 				cli.log('\n');
 				traverseDistributedDeployment(ocli, d, source, pDistributed, _count);
 			}
