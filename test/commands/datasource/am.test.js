@@ -49,50 +49,14 @@ const structure = [
 							},
 						],
 					},
-					{
-						type: fsify.DIRECTORY,
-						name: 'identity',
-						contents: [
-							{
-								type: fsify.FILE,
-								name: 'identity.xml',
-								contents: `<?xml version="1.0" encoding="ISO-8859-1"?>
-<Server xmlns="http://wso2.org/projects/carbon/carbon.xml">
-    <JDBCPersistenceManager>
-        <DataSource>
-            <!-- Include a data source name (jndiConfigName) from the set of data
-            sources defined in master-datasources.xml -->
-            <Name>jdbc/WSO2CarbonDB</Name>
-        </DataSource>
-    </JDBCPersistenceManager>
-</Server>
-`,
-							},
-						],
-					},
-					{
-						type: fsify.FILE,
-						name: 'registry.xml',
-						contents: `<?xml version="1.0" encoding="ISO-8859-1"?>
-<wso2registry>
-    <currentDBConfig>wso2registry</currentDBConfig>
-    <readOnly>false</readOnly>
-    <enableCache>true</enableCache>
-    <registryRoot>/</registryRoot>
-    <dbConfig name="wso2registry">
-        <dataSource>jdbc/WSO2CarbonDB</dataSource>
-    </dbConfig>
-</wso2registry>
-`,
-					},
 				],
 			},
 		],
 	},
 ];
 
-describe('datasource:is', () => {
-	let message = 'starting to alter wso2is-5.7';
+describe('datasource:am', () => {
+	let message = 'starting to alter wso2am-2.6';
 
 	fsify(structure)
 		.then(structure => {
@@ -102,8 +66,8 @@ describe('datasource:is', () => {
 		});
 
 	test.stdout()
-		.command(['datasource:is', '--replace', '--version', '5.7', '--datasource', 'postgres'])
-		.it('runs datasource:is --replace --version 5.7 --datasource postgres', ctx => {
+		.command(['datasource:am', '--replace', '--version', '2.6', '--datasource', 'postgres'])
+		.it('runs datasource:am --replace --version 2.6 --datasource postgres', ctx => {
 			expect(ctx.stdout).to
 				.contains(message + ' with postgres configurations');
 		});
@@ -116,8 +80,8 @@ describe('datasource:is', () => {
 		});
 
 	test.stdout()
-		.command(['datasource:is', '--replace', '--version', '5.7', '--datasource', 'mysql'])
-		.it('runs datasource:is --replace --version 5.7 --datasource mysql', ctx => {
+		.command(['datasource:am', '--replace', '--version', '2.6', '--datasource', 'mysql'])
+		.it('runs datasource:am --replace --version 2.6 --datasource mysql', ctx => {
 			expect(ctx.stdout).to
 				.contains(message + ' with mysql configurations');
 		});
@@ -130,17 +94,17 @@ describe('datasource:is', () => {
 		});
 
 	test.stdout()
-		.command(['datasource:is', '--replace', '--version', '5.7', '--datasource', 'oracle'])
-		.it('runs datasource:is --replace --version 5.7 --datasource oracle', ctx => {
+		.command(['datasource:am', '--replace', '--version', '2.6', '--datasource', 'oracle'])
+		.it('runs datasource:am --replace --version 2.6 --datasource oracle', ctx => {
 			expect(ctx.stdout).to
 				.contains(message + ' with oracle configurations');
 		});
 
 	test.stdout()
-		.command(['datasource:is', '--version', '5.7', '--datasource', 'postgres'])
+		.command(['datasource:am', '--version', '2.6', '--datasource', 'postgres'])
 		.exit(0)
-		.it('run datasource:is --version 5.7 --datasource postgres', ctx => {
+		.it('run datasource:am --version 2.6 --datasource postgres', ctx => {
 			expect(ctx.stdout).to
-				.contains('Alter datasources of WSO2 IS products (fresh-pack) with supported datasource models');
+				.contains('Alter datasources of WSO2 APIM products (fresh-pack) with supported datasource models');
 		});
 });
