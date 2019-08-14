@@ -18,9 +18,9 @@ class DatasourceAPIMCommand extends Command {
 
 			if (datasource === 'postgres')
 				await Postgres.configure(this, 'am');
-			else if (datasource === 'mysql')
+			if (datasource === 'mysql')
 				await MySQL.configure(this, 'am');
-			else if (datasource === 'oracle')
+			if (datasource === 'oracle')
 				await Oracle.configure(this, 'am');
 		} else {
 			this._help();

@@ -36,7 +36,8 @@ exports.configureDatasource = async function (ocli, args, product, database) {
 		}).then(() => {
 			buildISDoc(ocli, database, args);
 		});
-	} else if (product === 'am') {
+	}
+	if (product === 'am') {
 		cli.action.start('altering master-datasources.xml');
 		alterAMMasterDatasource(ocli, args).then(() => {
 			cli.action.stop();
@@ -275,11 +276,13 @@ function buildDriverDoc(ocli, database) {
 		ocli.log('NOTE: Download the Postgres JDBC Driver and place it inside /repository/components/lib folder.');
 		cli.url('Postgres JDBC Driver', 'https://jdbc.postgresql.org/');
 		cli.open('https://jdbc.postgresql.org/');
-	} else if (database === 'mysql') {
+	}
+	if (database === 'mysql') {
 		ocli.log('NOTE: Download the MySQL JDBC Driver and place it inside /repository/components/lib folder.');
 		cli.url('MySQL JDBC Driver', 'https://www.mysql.com/products/connector/');
 		cli.open('https://www.mysql.com/products/connector/');
-	} else if (database === 'oracle') {
+	}
+	if (database === 'oracle') {
 		ocli.log('NOTE: Download the Oracle JDBC Driver and place it inside /repository/components/lib folder.');
 		cli.url('Oracle JDBC Driver', 'https://www.oracle.com/technetwork/database/application-development/jdbc/downloads/index.html');
 		cli.open('https://www.oracle.com/technetwork/database/application-development/jdbc/downloads/index.html');
