@@ -11,19 +11,33 @@ class DistributeAMCommand extends Command {
 		if (flags['multiple-gateway']) {
 			this.log(`starting to configure apim-${version} ${datasource ? 'with ' + datasource + ' ' : ''}for multiple gateway setup`);
 			await Generic.configure(this, { 'multiple-gateway': true });
-		} else if (flags.distributed) {
+		}
+		if (flags.distributed) {
 			this.log(`starting to configure apim-${version} ${datasource ? 'with ' + datasource + ' ' : ''}for distributed setup`);
 			await Generic.configure(this, { distributed: true });
+		}
+
+		if (!flags['multiple-gateway'] && !flags.distributed) {
+			this._help();
 		}
 	}
 }
 
-DistributeAMCommand.description = `configure wso2 products for distributed deployments
+DistributeAMCommand.description = `Configure WSO2 APIM products (fresh-pack) for distributed deployments
 ...
-Extra documentation goes here
+Configure WSO2 APIM products for distributed deployments setup based on your preference.
+
+As of now, Hydrogen only supports configurations for 5 node distributed deployment setup,
+and publish through multiple-gateway node setup. For 5 node distribution, use --distributed (-D)
+flag, and for multiple-gateway node, use --multiple-gateway (-M) flag.
 `;
 
-DistributeAMCommand.examples = ['$ hydrogen distribute:am -v 2.6 -d postgres'];
+DistributeAMCommand.examples = [
+	`Configure APIM for 5 node distributed setup
+$ hydrogen distribute:am -D -v 2.6 -d postgres`,
+	`Configure APIM for publish through multiple-gateway setup
+$ hydrogen distribute:am -M -v 2.6 -d postgres`,
+];
 
 DistributeAMCommand.flags = {
 	version: flags.string({
@@ -31,7 +45,8 @@ DistributeAMCommand.flags = {
 		description: 'product version',
 		hidden: true,
 		multiple: false,
-		required: false,
+		required: true,
+		default: '2.6',
 		options: ['2.6'],
 	}),
 	datasource: flags.string({
@@ -52,7 +67,7 @@ DistributeAMCommand.flags = {
 	}),
 	distributed: flags.boolean({
 		char: 'D',
-		description: 'distributed setup',
+		description: '5 node distributed setup',
 		hidden: false,
 		multiple: false,
 		required: false,
