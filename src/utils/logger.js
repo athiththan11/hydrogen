@@ -1,6 +1,6 @@
 // eslint-disable-next-line node/no-unpublished-require
 const winston = require('winston');
-const { createLogger, format, transports } = winston;
+const { createLogger, format } = winston;
 
 const logFormat = format.printf(({ level, message, timestamp }) => {
 	return `${timestamp} ${level}: ${message}`;
