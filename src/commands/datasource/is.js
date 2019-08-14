@@ -22,6 +22,8 @@ class DatasourceISCommand extends Command {
 			else if (datasource === 'oracle') {
 				await Oracle.configure(this, 'is');
 			}
+		} else {
+			this._help();
 		}
 	}
 }
@@ -30,18 +32,22 @@ DatasourceISCommand.usage = [
 	'datasource:is [FLAGS] [ARGS]',
 ];
 
-DatasourceISCommand.description = `Alter datasources of WSO2 products (fresh-pack) with supported datasource vendors
+DatasourceISCommand.description = `Alter datasources of WSO2 IS products (fresh-pack) with supported datasource models
 ...
-Alter datasource configurations of WSO2 products based on your preference.
+Alter datasource configurations of WSO2 IS products based on your preference.
 
 As of now, Hydrogen only supports replacing the default H2 datasource with a variety
-of available datasources supported. To replace the default shipped H2 datasource,
+of available supported datasource models. To replace the default shipped H2 datasource,
 use --replace (-R) and pass supported datasource with --datasource flag (--datasource mysql).
 `;
 
 DatasourceISCommand.examples = [
 	`Replace H2 with Postgres
 $ hydrogen datasource:is -R -v 5.7 -d postgres`,
+	`Replace H2 with MySQL
+$ hydrogen datasource:is -R -v 5.7 -d mysql`,
+	`Replace H2 with Oracle
+$ hydrogen datasource:is -R -v 5.7 -d oracle`,
 ];
 
 DatasourceISCommand.flags = {
@@ -50,7 +56,8 @@ DatasourceISCommand.flags = {
 		description: 'product version. supported versions are [is >= 5.7]',
 		hidden: false,
 		multiple: false,
-		required: false,
+		required: true,
+		default: '5.7',
 		options: ['5.7'],
 	}),
 	datasource: flags.string({

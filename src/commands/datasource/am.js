@@ -16,8 +16,14 @@ class DatasourceAPIMCommand extends Command {
 		if (replace) {
 			this.log(`starting to alter wso2am-${version} with ${datasource} configurations`);
 
-			if (datasource === 'mysql')
+			if (datasource === 'postgres')
+				await Postgres.configure(this, 'am');
+			else if (datasource === 'mysql')
 				await MySQL.configure(this, 'am');
+			else if (datasource === 'oracle')
+				await Oracle.configure(this, 'am');
+		} else {
+			this._help();
 		}
 	}
 }
@@ -26,18 +32,22 @@ DatasourceAPIMCommand.usage = [
 	'datasource:am [FLAGS] [ARGS]',
 ];
 
-DatasourceAPIMCommand.description = `Alter datasources of WSO2 products (fresh-pack) with supported datasource vendors
+DatasourceAPIMCommand.description = `Alter datasources of WSO2 APIM products (fresh-pack) with supported datasource models
 ...
-Alter datasource configurations of WSO2 products based on your preference.
+Alter datasource configurations of WSO2 APIM products based on your preference.
 
 As of now, Hydrogen only supports replacing the default H2 datasource with a variety
-of available datasources supported. To replace the default shipped H2 datasource,
+of available datasource models. To replace the default shipped H2 datasource,
 use --replace (-R) and pass supported datasource with --datasource flag (--datasource mysql).
 `;
 
 DatasourceAPIMCommand.examples = [
 	`Replace H2 with Postgres
 $ hydrogen datasource:am -R -v 2.6 -d postgres`,
+	`Replace H2 with MySQL
+$ hydrogen datasource:am -R -v 2.6 -d mysql`,
+	`Replace H2 with Oracle
+$ hydrogen datasource:am -R -v 2.6 -d oracle`,
 ];
 
 DatasourceAPIMCommand.flags = {
@@ -46,7 +56,7 @@ DatasourceAPIMCommand.flags = {
 		description: 'product version. supported versions are [apim >= 2.6]',
 		hidden: false,
 		multiple: false,
-		required: false,
+		required: true,
 		default: '2.6',
 		options: ['2.6'],
 	}),
@@ -56,7 +66,7 @@ DatasourceAPIMCommand.flags = {
 		hidden: false,
 		multiple: false,
 		required: true,
-		options: ['mysql'],
+		options: ['postgres', 'mysql', 'oracle'],
 	}),
 	replace: flags.boolean({
 		char: 'R',

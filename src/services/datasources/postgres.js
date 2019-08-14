@@ -1,13 +1,30 @@
 const { configureDatasource } = require('./generic');
 
-let args = {};
-args._ = 'PostgresCarbonDB';
-args._name = 'Postgres_Carbon_DB';
-args._connectionUrl = 'jdbc:postgresql://localhost:5432/wso2postgres';
-args._defaultAutoCommit = 'true';
-args._driver = 'org.postgresql.Driver';
-args._validationQuery = 'SELECT 1; COMMIT';
-
 exports.configure = async function (ocli, product) {
-	configureDatasource(ocli, args, product);
+	let args = {
+		_connectionUrl: 'jdbc:postgresql://localhost:5432/wso2postgres',
+		_defaultAutoCommit: 'true',
+		_description: 'The datasource used for registry and user manager',
+		_driver: 'org.postgresql.Driver',
+		_jndiName: 'jdbc/WSO2PostgresCarbonDB',
+		_maxActive: '80',
+		_maxWait: '60000',
+		_minIdle: '5',
+		_name: 'WSO2_POSTGRES_CARBON_DB',
+		_password: 'hydrogen',
+		_testOnBorrow: 'true',
+		_username: 'postgres',
+		_validationInterval: '30000',
+		_validationQuery: 'SELECT 1; COMMIT',
+	};
+
+	if (product === 'am') {
+		args._connectionUrl = 'jdbc:postgresql://localhost:5432/wso2amdb';
+		args._defaultAutoCommit = 'false';
+		args._description = 'The datasource used for API Manager database';
+		args._jndiName = 'jdbc/WSO2AM_DB';
+		args._name = 'WSO2AM_DB';
+	}
+
+	configureDatasource(ocli, args, product, 'postgres');
 };
