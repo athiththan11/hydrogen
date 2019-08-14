@@ -14,6 +14,8 @@
 
 <br>
 
+[![CircleCI](https://circleci.com/gh/athiththan11/hydrogen.svg?style=svg&circle-token=bf27e3287ab3c738b05245a3e62f57b965929aa1)](https://circleci.com/gh/athiththan11/hydrogen)
+
 [:construction: Work In Progress]
 
 ## Commands
@@ -125,25 +127,32 @@ EXAMPLE
   $ hydrogen distribute:am [FLAGS] [ARGS]
 
 COMMANDS
-  distribute:am  configure wso2 products for distributed deployments
+  distribute:am  Configure WSO2 APIM products (fresh-pack) for distributed deployments
 ```
 
 #### distribute:am
 
 ```shell
-configure wso2 products for distributed deployments
+Configure WSO2 APIM products (fresh-pack) for distributed deployments
 
 USAGE
   $ hydrogen distribute:am
 
 OPTIONS
-  -D, --distributed       distributed setup
+  -D, --distributed       5 node distributed setup
   -M, --multiple-gateway  publish through multiple gateway
 
 DESCRIPTION
   ...
-  Extra documentation goes here
+  Configure WSO2 APIM products for distributed deployments setup based on your preference.
 
-EXAMPLE
-  $ hydrogen distribute:am -D
+  As of now, Hydrogen only supports configurations for 5 node distributed deployment setup,
+  and publish through multiple-gateway node setup. For 5 node distribution, use --distributed (-D)
+  flag, and for multiple-gateway node, use --multiple-gateway (-M) flag.
+
+EXAMPLES
+  Configure APIM for 5 node distributed setup
+  $ hydrogen distribute:am -D -v 2.6 -d postgres
+  Configure APIM for publish through multiple-gateway setup
+  $ hydrogen distribute:am -M -v 2.6 -d postgres
 ```
