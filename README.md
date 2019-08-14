@@ -39,40 +39,44 @@ EXAMPLE
   $ hydrogen datasource:is [FLAGS] [ARGS]
 
 COMMANDS
-  datasource:am  Alter datasources of WSO2 products (fresh-pack) with supported datasource vendors
-  datasource:is  Alter datasources of WSO2 products (fresh-pack) with supported datasource vendors
+  datasource:am  Alter datasources of WSO2 APIM products (fresh-pack) with supported datasource models
+  datasource:is  Alter datasources of WSO2 IS products (fresh-pack) with supported datasource models
 ```
 
 #### datasource:am
 
 ```shell
-Alter datasources of WSO2 products (fresh-pack) with supported datasource vendors
+Alter datasources of WSO2 APIM products (fresh-pack) with supported datasource models
 
 USAGE
   $ hydrogen datasource:am [FLAGS] [ARGS]
 
 OPTIONS
-  -R, --replace           replace h2 datasource
-  -d, --datasource=mysql  (required) datasource type
-  -v, --version=2.6       [default: 2.6] product version. supported versions are [apim >= 2.6]
+  -R, --replace                           replace h2 datasource
+  -d, --datasource=postgres|mysql|oracle  (required) datasource type
+  -v, --version=2.6                       (required) [default: 2.6] product version. supported versions are [apim >= 2.6]
 
 DESCRIPTION
   ...
-  Alter datasource configurations of WSO2 products based on your preference.
+  Alter datasource configurations of WSO2 APIM products based on your preference.
 
   As of now, Hydrogen only supports replacing the default H2 datasource with a variety
-  of available datasources supported. To replace the default shipped H2 datasource,
+  of available datasource models. To replace the default shipped H2 datasource,
   use --replace (-R) and pass supported datasource with --datasource flag (--datasource mysql).
 
-EXAMPLE
+EXAMPLES
+  Replace H2 with Postgres
+  $ hydrogen datasource:am -R -v 2.6 -d postgres
   Replace H2 with MySQL
   $ hydrogen datasource:am -R -v 2.6 -d mysql
+  Replace H2 with Oracle
+  $ hydrogen datasource:am -R -v 2.6 -d oracle
 ```
 
 #### datasource:is
 
 ```shell
-Alter datasources of WSO2 products (fresh-pack) with supported datasource vendors
+Alter datasources of WSO2 IS products (fresh-pack) with supported datasource models
 
 USAGE
   $ hydrogen datasource:is [FLAGS] [ARGS]
@@ -80,19 +84,23 @@ USAGE
 OPTIONS
   -R, --replace                           replace h2 datasource
   -d, --datasource=postgres|mysql|oracle  (required) datasource type
-  -v, --version=5.7                       product version. supported versions are [is >= 5.7]
+  -v, --version=5.7                       (required) [default: 5.7] product version. supported versions are [is >= 5.7]
 
 DESCRIPTION
   ...
-  Alter datasource configurations of WSO2 products based on your preference.
+  Alter datasource configurations of WSO2 IS products based on your preference.
 
   As of now, Hydrogen only supports replacing the default H2 datasource with a variety
-  of available datasources supported. To replace the default shipped H2 datasource,
+  of available supported datasource models. To replace the default shipped H2 datasource,
   use --replace (-R) and pass supported datasource with --datasource flag (--datasource mysql).
 
-EXAMPLE
+EXAMPLES
   Replace H2 with Postgres
   $ hydrogen datasource:is -R -v 5.7 -d postgres
+  Replace H2 with MySQL
+  $ hydrogen datasource:is -R -v 5.7 -d mysql
+  Replace H2 with Oracle
+  $ hydrogen datasource:is -R -v 5.7 -d oracle
 ```
 
 ### Distribute
