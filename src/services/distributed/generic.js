@@ -31,6 +31,7 @@ let _c = {
 		'trafficmanager',
 	],
 };
+
 let _comment = 'HYDROGENERATED:';
 let _distributed = 'distributed';
 let _n = '\n\n';
@@ -51,26 +52,12 @@ let _p9443 = 9443;
 let _p9611 = 9611;
 let _p9711 = 9711;
 
-// datasource properties
-let _name = 'WSO2AM_DB';
-let _description = 'The datasource used for the API Manager database';
-let _jndiName = 'jdbc/WSO2AM_DB';
-let _connectionUrl = '{specify connection url}';
-let _username = 'hydrogen';
-let _driver = '{specify jdbc driver}';
-let _maxActive = '80';
-let _maxWait = '60000';
-let _minIdle = '5';
-let _testOnBorrow = 'true';
-let _validationInterval = '30000';
-let _validationQuery = 'SELECT 1';
-let _defaultAutoCommit = 'false';
-
 exports.configure = async function (ocli, args) {
+	cli.log('\n');
 	if (args['multiple-gateway'])
-		configureMultipleGateway(ocli);
-	else if (args.distributed)
-		configureDistributedDeployment(ocli);
+		await configureMultipleGateway(ocli);
+	if (args.distributed)
+		await configureDistributedDeployment(ocli);
 };
 
 // #region publish multiple gateway configurations
@@ -81,45 +68,187 @@ async function configureMultipleGateway(ocli) {
 		fs.removeSync(path.join(_p, '.DS_Store'));
 	}
 
-	if (fs.readdirSync(_p).length === 1) {
-		fs.readdirSync(_p).forEach(d => {
-			if (d.startsWith('wso2')) {
-				let pDistributed = path.join(_p, _distributed);
-				// create folder named 'ditributed'
-				fs.mkdirSync(pDistributed);
+	let sync = fs.readdirSync(_p);
+	if (sync.length === 1 && sync[0].startsWith('wso2')) {
+		let pDistributed = path.join(_p, _distributed);
 
-				let source = path.join(_p, d);
-				let _count = 0;
+		// create distributed folder
+		fs.mkdirSync(pDistributed);
 
-				cli.log('\n');
-				traverseMultipleGateway(ocli, d, source, pDistributed, _count);
-			}
-		});
+		let source = path.join(_p, sync[0]);
+		let _count = 0;
+
+		traverseMultipleGateway(ocli, sync[0], source, pDistributed, _count);
 	}
 }
 
 // eslint-disable-next-line max-params
-function traverseMultipleGateway(ocli, product, source, pDistributed, count) {
+function traverseMultipleGateway(ocli, pack, source, p, count) {
 	if (count < _c['multiple-gateway'].length) {
-		var name = _c['multiple-gateway'].sort()[count];
-		cli.action.start(`configuring ${product} as ${name}`);
-		fs.copy(source, path.join(pDistributed, name)).then(() => {
-			if (name.startsWith('gateway')) {
-				configureMGW(path.join(pDistributed, name), count);
+		let nodeName = _c['multiple-gateway'].sort()[count];
+		cli.action.start(`configuring ${pack} as ${nodeName}`);
+		fs.copy(source, path.join(p, nodeName)).then(() => {
+			if (nodeName.startsWith('gateway')) {
+				configureMGW(path.join(p, nodeName), count);
 			} else {
-				configureMGWAIO(path.join(pDistributed, name));
+				configureMGWAIO(path.join(p, nodeName));
 			}
 		}).then(() => {
 			cli.action.stop();
 		}).then(() => {
-			traverseMultipleGateway(ocli, product, source, pDistributed, ++count);
+			traverseMultipleGateway(ocli, pack, source, p, ++count);
 		});
 	} else {
-		buildMultipleGatewayDoc(ocli);
+		buildMGWDoc(ocli);
 	}
 }
 
-function buildMultipleGatewayDoc(ocli) {
+// multiple-gateway all-in-one
+async function configureMGWAIO(p) {
+	await parseXML(null, path.join(p, pApiManager)).then(apim => {
+		let doc = new libxmljs.Document(apim);
+
+		// environment node creation
+		let envProdNode = buildEnvironment(
+			doc,
+			'production',
+			'Production Gateway',
+			'Production Gateway Environment',
+			1
+		);
+		let envHybNode = buildEnvironment(
+			doc,
+			'hybrid',
+			'Production and Sandbox',
+			'Hybrid Gateway Environment',
+			2
+		);
+
+		let defaultElement = apim.root()
+			.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]/*[local-name()="Environment"]')
+			.remove();
+
+		let alteredDefault = defaultElement.toString().split('\n');
+		let altered = '';
+		alteredDefault.forEach(a => {
+			if (a.includes('<!--')) {
+				altered += a + '\n';
+			} else {
+				altered += '<!-- ' + a.trim() + ' -->\n';
+			}
+		});
+
+		apim.root()
+			.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]')
+			.addChild(envProdNode).addChild(envHybNode);
+
+		let _altered = removeDeclaration(apim.toString());
+		let envsElement = _altered.substring(_altered.indexOf('<Environments>'), _altered.indexOf('</Environments>'));
+
+		envsElement = envsElement.substring(0, envsElement.indexOf('<Environment ')) +
+			altered +
+			`${_n}${_t}<!-- ${_comment} environments added -->\n${_t}` +
+			envsElement.substring(envsElement.indexOf('<Environment '), envsElement.lastIndexOf('<Environment ')) +
+			'\n\n' +
+			envsElement.substring(envsElement.lastIndexOf('<Environment '), envsElement.length);
+
+		_altered = _altered.substring(0, _altered.indexOf('<Environments>')) +
+			envsElement +
+			_n +
+			_altered.substring(_altered.indexOf('</Environments>'), _altered.length);
+
+		fs.writeFileSync(path.join(p, pApiManager), prettify(_altered, { indent: 4 }) + '\n', _utf8);
+	});
+}
+
+// eslint-disable-next-line max-params
+function buildEnvironment(doc, type, name, description, c) {
+	let environment = new libxmljs.Element(doc, 'Environment').attr({ type: type, 'api-console': 'true' });
+	environment
+		.node('Name', name)
+		.parent()
+		.node('Description', description)
+		.parent()
+		.node('ServerURL', `https://localhost:${_p9443 + c}/services/`)
+		.parent()
+		.node('Username', 'admin')
+		.parent()
+		.node('Password', 'admin')
+		.parent()
+		.node('GatewayEndpoint', `http://localhost:${_p8280 + c},https://localhost:${_p8243 + c}`);
+	return environment;
+}
+
+// multiple-gateway gateway
+async function configureMGW(p, count) {
+	await parseXML(null, path.join(p, pApiManager)).then(apim => {
+		let doc = new libxmljs.Document(apim);
+
+		// ServerURL node creation
+		let serverUrlElement = new libxmljs.Element(doc, 'ServerURL', `https://localhost:${_p9443}/services/`);
+
+		apim.root()
+			.get('//*[local-name()="AuthManager"]/*[local-name()="ServerURL"]')
+			.addNextSibling(serverUrlElement);
+
+		apim.root()
+			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="ServerURL"]')
+			.addNextSibling(serverUrlElement);
+
+		// ThriftClientPort node creation
+		let thriftClientPortElement = new libxmljs.Element(doc, 'ThriftClientPort', '10397');
+
+		apim.root()
+			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="ThriftClientConnectionTimeOut"]')
+			.addNextSibling(thriftClientPortElement);
+
+		// EnableThriftServer node creation
+		let enableThriftServerElement = new libxmljs.Element(doc, 'EnableThriftServer', 'false');
+
+		apim.root()
+			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="EnableThriftServer"]')
+			.addNextSibling(enableThriftServerElement);
+
+		// RevokeAPIURL element
+		let revokeApiElement = new libxmljs.Element(doc, 'RevokeAPIURL', `https://localhost:${_p8243}/revoke`);
+
+		apim.root()
+			.get('//*[local-name()="OAuthConfigurations"]/*[local-name()="RevokeAPIURL"]')
+			.addNextSibling(revokeApiElement);
+
+		let altered = removeDeclaration(apim.toString());
+		let authManager = altered.substring(altered.indexOf('<AuthManager>'), altered.indexOf('</AuthManager>'));
+		let apiKeyValidator = altered.substring(altered.lastIndexOf('<APIKeyValidator>'), altered.lastIndexOf('</APIKeyValidator>'));
+
+		let firstAlter = alterElement(authManager, 'ServerURL', 'server url changed ');
+		let secondAlter = apiKeyValidator.substring(0, apiKeyValidator.indexOf('<ServerURL>')) +
+			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<ServerURL>'), apiKeyValidator.lastIndexOf('<ServerURL>'))) +
+			`${_t}<!-- ${_comment} server url has been changed -->\n${_t}` +
+			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<ServerURL>'), apiKeyValidator.indexOf('<ThriftClientPort>')) +
+			`${_n}` +
+			`${_t}<!-- ${_comment} thrift client port has been set -->\n${_t}` +
+			apiKeyValidator.substring(apiKeyValidator.indexOf('<ThriftClientPort>'), apiKeyValidator.indexOf('<EnableThriftServer>')) +
+			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<EnableThriftServer>'), apiKeyValidator.lastIndexOf('<EnableThriftServer>'))) +
+			`${_t}<!-- ${_comment} thrift server has been disabled -->\n${_t}` +
+			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<EnableThriftServer>'), apiKeyValidator.length);
+
+		let _altered = altered.substring(0, altered.indexOf('<AuthManager>')) +
+			firstAlter +
+			altered.substring(altered.indexOf('</AuthManager>'), altered.lastIndexOf('<APIKeyValidator>')) +
+			secondAlter +
+			altered.substring(altered.lastIndexOf('</APIKeyValidator>'), altered.indexOf('<RevokeAPIURL>')) +
+			commentElement(altered.substring(altered.indexOf('<RevokeAPIURL>'), altered.lastIndexOf('<RevokeAPIURL>'))) +
+			`${_t}<!-- ${_comment} revoke api changed -->\n${_t}` +
+			altered.substring(altered.lastIndexOf('<RevokeAPIURL>'), altered.length);
+
+		fs.writeFileSync(path.join(p, pApiManager), _altered, _utf8);
+	}).then(() => {
+		configurePortOffset(p, count);
+	});
+}
+
+// build docs and additional notes
+function buildMGWDoc(ocli) {
 	const table = new Table({
 		style: {
 			head: ['reset'],
@@ -147,227 +276,63 @@ function buildMultipleGatewayDoc(ocli) {
 	ocli.log('\n' + table.toString());
 }
 
-// multiple-gateway all-in-one
-async function configureMGWAIO(p) {
-	await parseXML(null, path.join(p, pApiManager)).then(apim => {
-		let doc = new libxmljs.Document(apim);
-
-		// environment node creation
-		let envProdNode = buildEnvironmentNode(doc, 'production', 'Production Gateway', 'Production Gateway Environment', 1);
-		let envHybNode = buildEnvironmentNode(doc, 'hybrid', 'Production and Sandbox', 'Hybrid Gateway Environment', 2);
-
-		let defaultElement = apim.root()
-			.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]/*[local-name()="Environment"]')
-			.remove();
-
-		let alteredDefault = defaultElement.toString().split('\n');
-		let altered = '';
-		alteredDefault.forEach(a => {
-			if (a.includes('<!--')) {
-				altered += a + '\n';
-			} else {
-				altered += '<!-- ' + a.trim() + ' -->\n';
-			}
-		});
-
-		apim.root()
-			.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]')
-			.addChild(envProdNode).addChild(envHybNode);
-
-		let _altered = removeDeclaration(apim.toString());
-		let envsElement = _altered.substring(_altered.indexOf('<Environments>'), _altered.indexOf('</Environments>'));
-
-		envsElement = envsElement.substring(0, envsElement.indexOf('<Environment ')) +
-			prettify(altered) +
-			`${_n}${_t}<!-- ${_comment} environments added -->\n${_t}` +
-			prettify(envsElement.substring(envsElement.indexOf('<Environment '), envsElement.lastIndexOf('<Environment '))) +
-			'\n\n' +
-			prettify(envsElement.substring(envsElement.lastIndexOf('<Environment '), envsElement.length));
-
-		_altered = _altered.substring(0, _altered.indexOf('<Environments>')) +
-			envsElement +
-			_n +
-			_altered.substring(_altered.indexOf('</Environments>'), _altered.length);
-
-		fs.writeFileSync(path.join(p, pApiManager), prettify(_altered) + '\n', _utf8);
-	});
-}
-
-// eslint-disable-next-line max-params
-function buildEnvironmentNode(doc, type, name, description, c) {
-	let environmentNode = new libxmljs.Element(doc, 'Environment').attr({ type: type, 'api-console': 'true' });
-	environmentNode
-		.node('Name', name)
-		.parent()
-		.node('Description', description)
-		.parent()
-		.node('ServerURL', `https://localhost:${_p9443 + c}/services/`)
-		.parent()
-		.node('Username', 'admin')
-		.parent()
-		.node('Password', 'admin')
-		.parent()
-		.node('GatewayEndpoint', `http://localhost:${_p8280 + c},https://localhost:${_p8243 + c}`);
-	return environmentNode;
-}
-
-async function configureMGW(p, _count) {
-	await parseXML(null, path.join(p, pApiManager)).then(apim => {
-		let doc = new libxmljs.Document(apim);
-
-		// ServerURL node creation
-		let serverUrlElement = new libxmljs.Element(doc, 'ServerURL', 'https://localhost:9443/services/');
-
-		apim.root()
-			.get('//*[local-name()="AuthManager"]/*[local-name()="ServerURL"]')
-			.addNextSibling(serverUrlElement);
-
-		apim.root()
-			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="ServerURL"]')
-			.addNextSibling(serverUrlElement);
-
-		// ThriftClientPort node creation
-		let thriftClientPortElement = new libxmljs.Element(doc, 'ThriftClientPort', '10397');
-
-		apim.root()
-			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="ThriftClientConnectionTimeOut"]')
-			.addNextSibling(thriftClientPortElement);
-
-		// EnableThriftServer node creation
-		let enableThriftServerElement = new libxmljs.Element(doc, 'EnableThriftServer', 'false');
-
-		apim.root()
-			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="EnableThriftServer"]')
-			.addNextSibling(enableThriftServerElement);
-
-		// RevokeAPIURL element
-		let revokeApiElement = new libxmljs.Element(doc, 'RevokeAPIURL', 'https://localhost:8243/revoke');
-
-		apim.root()
-			.get('//*[local-name()="OAuthConfigurations"]/*[local-name()="RevokeAPIURL"]')
-			.addNextSibling(revokeApiElement);
-
-		let altered = removeDeclaration(apim.toString());
-		let authManager = altered.substring(altered.indexOf('<AuthManager>'), altered.indexOf('</AuthManager>'));
-		let apiKeyValidator = altered.substring(altered.lastIndexOf('<APIKeyValidator>'), altered.lastIndexOf('</APIKeyValidator>'));
-
-		let firstAlter = alterElement(authManager, 'ServerURL', 'server url changed ');
-		let secondAlter = apiKeyValidator.substring(0, apiKeyValidator.indexOf('<ServerURL>')) +
-			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<ServerURL>'), apiKeyValidator.lastIndexOf('<ServerURL>'))) +
-			`${_t}<!-- ${_comment} server url has been changed -->\n${_t}` +
-			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<ServerURL>'), apiKeyValidator.indexOf('<ThriftClientPort>')) +
-			`${_n}` +
-			`${_t}<!-- ${_comment} thrift client port has been set -->\n${_t}` +
-			apiKeyValidator.substring(apiKeyValidator.indexOf('<ThriftClientPort>'), apiKeyValidator.indexOf('<EnableThriftServer>')) +
-			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<EnableThriftServer>'), apiKeyValidator.lastIndexOf('<EnableThriftServer>'))) +
-			`${_t}<!-- ${_comment} thrift server has been disabled -->\n${_t}` +
-			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<EnableThriftServer>'), apiKeyValidator.length);
-
-		// altered.substring(0, altered.lastIndexOf('<APIStore>')) +
-		let _altered = altered.substring(0, altered.indexOf('<AuthManager>')) +
-			firstAlter +
-			altered.substring(altered.indexOf('</AuthManager>'), altered.lastIndexOf('<APIKeyValidator>')) +
-			secondAlter +
-			altered.substring(altered.lastIndexOf('</APIKeyValidator>'), altered.indexOf('<RevokeAPIURL>')) +
-			commentElement(altered.substring(altered.indexOf('<RevokeAPIURL>'), altered.lastIndexOf('<RevokeAPIURL>'))) +
-			`${_t}<!-- ${_comment}: revoke api changed -->\n${_t}` +
-			altered.substring(altered.lastIndexOf('<RevokeAPIURL>'), altered.length);
-
-		fs.writeFileSync(path.join(p, pApiManager), _altered, _utf8);
-	}).then(() => {
-		configureMGWCarbon(p, _count);
-	});
-}
-
-async function configureMGWCarbon(p, _count) {
-	await configurePortOffset(p, _count);
-}
-
 // #endregion
 
-// #region distributed deployment 5 nodes
+// #region 5 nodes distributed deployment
 
-function configureDistributedDeployment(ocli) {
+async function configureDistributedDeployment(ocli) {
 	// clean .DS_Store in mac filesystem
 	if (fs.existsSync(path.join(_p, '.DS_Store'))) {
 		fs.removeSync(path.join(_p, '.DS_Store'));
 	}
 
-	if (fs.readdirSync(_p).length === 1) {
-		fs.readdirSync(_p).forEach(d => {
-			if (d.startsWith('wso2')) {
-				let pDistributed = path.join(_p, _distributed);
-				// create folder named 'ditributed'
-				fs.mkdirSync(pDistributed);
+	let sync = fs.readdirSync(_p);
+	if (sync.length === 1 && sync[0].startsWith('wso2')) {
+		let pDistributed = path.join(_p, _distributed);
 
-				let source = path.join(_p, d);
-				let _count = 0;
+		// create distributed folder
+		fs.mkdirSync(pDistributed);
 
-				cli.log('\n');
-				traverseDistributedDeployment(ocli, d, source, pDistributed, _count);
-			}
-		});
+		let source = path.join(_p, sync[0]);
+		let _count = 0;
+
+		traverseDistributedDeployment(ocli, sync[0], source, pDistributed, _count);
 	}
 }
 
 // eslint-disable-next-line max-params
-function traverseDistributedDeployment(ocli, product, source, pDistributed, count) {
+function traverseDistributedDeployment(ocli, pack, source, p, count) {
 	if (count < _c.distributed.length) {
 		var name = _c.distributed.sort()[count];
-		cli.action.start(`configuring ${product} as ${name}`);
-		fs.copy(source, path.join(pDistributed, name)).then(() => {
+		cli.action.start(`configuring ${pack} as ${name}`);
+		fs.copy(source, path.join(p, name)).then(() => {
 			if (name === 'gateway') {
-				configureDGWay(path.join(pDistributed, name), count);
-			} else if (name === 'keymanager') {
-				configureDKManager(path.join(pDistributed, name), count);
-			} else if (name === 'publisher') {
-				configureDPub(path.join(pDistributed, name), count);
-			} else if (name === 'store') {
-				configureDStore(path.join(pDistributed, name), count);
-			} else if (name === 'trafficmanager') {
-				configureDTManager(path.join(pDistributed, name), count);
+				configureDGWay(path.join(p, name), count);
+			}
+			if (name === 'keymanager') {
+				configureDKManager(path.join(p, name), count);
+			}
+			if (name === 'publisher') {
+				configureDPub(path.join(p, name), count);
+			}
+			if (name === 'store') {
+				configureDStore(path.join(p, name), count);
+			}
+			if (name === 'trafficmanager') {
+				configureDTManager(path.join(p, name), count);
 			}
 		}).then(() => {
 			cli.action.stop();
 		}).then(() => {
-			traverseDistributedDeployment(ocli, product, source, pDistributed, ++count);
+			traverseDistributedDeployment(ocli, pack, source, p, ++count);
 		});
 	} else {
-		buildDistributedDeploymentDoc(ocli);
+		buildDDDoc(ocli);
 	}
 }
 
-function buildDistributedDeploymentDoc(ocli) {
-	const table = new Table({
-		style: {
-			head: ['reset'],
-		},
-		head: [
-			'node',
-			'port-offset',
-			'port',
-		],
-		chars: {
-			mid: '',
-			'left-mid': '',
-			'mid-mid': '',
-			'right-mid': '',
-		},
-	});
-
-	table.push(
-		['', '', ''],
-		['gateway', '0', '9443'],
-		['keymanager', '1', '9444'],
-		['publisher', '2', '9445'],
-		['store', '3', '9446'],
-		['trafficmanager', '4', '9447']
-	);
-
-	ocli.log('\n' + table.toString());
-}
-
-async function configureDGWay(p, _count) {
+// configure gateway node in distributed
+async function configureDGWay(p, count) {
 	await parseXML(null, path.join(p, pApiManager)).then(apim => {
 		let doc = new libxmljs.Document(apim);
 
@@ -434,38 +399,37 @@ async function configureDGWay(p, _count) {
 			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
 			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<ServerURL>'), apiKeyValidator.indexOf('<KeyValidatorClientType>')) +
 			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<KeyValidatorClientType>'), apiKeyValidator.lastIndexOf('<KeyValidatorClientType>'))) +
-			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			`${_t}<!-- ${_comment} client type changed -->\n${_t}` +
 			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<KeyValidatorClientType>'), apiKeyValidator.indexOf('<EnableThriftServer>')) +
 			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<EnableThriftServer>'), apiKeyValidator.lastIndexOf('<EnableThriftServer>'))) +
-			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			`${_t}<!-- ${_comment} thrift server disabled -->\n${_t}` +
 			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<EnableThriftServer>'), apiKeyValidator.length);
 
 		let tConf = altered.substring(altered.indexOf('<ThrottlingConfigurations>'), altered.indexOf('</ThrottlingConfigurations>'));
 		let trafficmanager = tConf.substring(tConf.indexOf('<TrafficManager>'), tConf.indexOf('</TrafficManager>'));
 		let sfirstAlter = trafficmanager.substring(0, trafficmanager.indexOf('<ReceiverUrlGroup>')) +
 			commentElement(trafficmanager.substring(trafficmanager.indexOf('<ReceiverUrlGroup>'), trafficmanager.lastIndexOf('<ReceiverUrlGroup>'))) +
-			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			`${_t}<!-- ${_comment} url changed -->\n${_t}` +
 			trafficmanager.substring(trafficmanager.lastIndexOf('<ReceiverUrlGroup>'), trafficmanager.indexOf('<AuthUrlGroup>')) +
 			commentElement(trafficmanager.substring(trafficmanager.indexOf('<AuthUrlGroup>'), trafficmanager.lastIndexOf('<AuthUrlGroup>'))) +
-			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			`${_t}<!-- ${_comment} url changed -->\n${_t}` +
 			trafficmanager.substring(trafficmanager.lastIndexOf('<AuthUrlGroup>'), trafficmanager.length);
 
 		let policyDeployer = tConf.substring(tConf.indexOf('<PolicyDeployer>'), tConf.indexOf('</PolicyDeployer>'));
 		let ssecondAlter = policyDeployer.substring(0, policyDeployer.indexOf('<Enabled>')) +
 			commentElement(policyDeployer.substring(policyDeployer.indexOf('<Enabled>'), policyDeployer.lastIndexOf('<Enabled>'))) +
-			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			`${_t}<!-- ${_comment} disabled -->\n${_t}` +
 			policyDeployer.substring(policyDeployer.lastIndexOf('<Enabled>'), policyDeployer.indexOf('<ServiceURL>')) +
 			commentElement(policyDeployer.substring(policyDeployer.indexOf('<ServiceURL>'), policyDeployer.lastIndexOf('<ServiceURL>'))) +
-			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			`${_t}<!-- ${_comment} service url changed -->\n${_t}` +
 			policyDeployer.substring(policyDeployer.lastIndexOf('<ServiceURL>'), policyDeployer.length);
 
 		let jmsConnectionDetails = tConf.substring(tConf.indexOf('<JMSConnectionDetails>'), tConf.indexOf('</JMSConnectionDetails>'));
-		let sthirdAlter = jmsConnectionDetails.substring(0, jmsConnectionDetails.indexOf('<ServiceURL>')) +
-			_n +
-			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+		let sthirdAlter = jmsConnectionDetails.substring(0, jmsConnectionDetails.indexOf('<ServiceURL>')) + _n +
+			`${_t}<!-- ${_comment} service url changed -->\n${_t}` +
 			jmsConnectionDetails.substring(jmsConnectionDetails.indexOf('<ServiceURL>'), jmsConnectionDetails.indexOf('<connectionfactory.TopicConnectionFactory>')) +
 			commentElement(jmsConnectionDetails.substring(jmsConnectionDetails.indexOf('<connectionfactory.TopicConnectionFactory>'), jmsConnectionDetails.lastIndexOf('<connectionfactory.TopicConnectionFactory>'))) +
-			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			`${_t}<!-- ${_comment} changed -->\n${_t}` +
 			jmsConnectionDetails.substring(jmsConnectionDetails.lastIndexOf('<connectionfactory.TopicConnectionFactory>'), jmsConnectionDetails.length);
 
 		let secondAlter = tConf.substring(0, tConf.indexOf('<TrafficManager>')) +
@@ -484,11 +448,29 @@ async function configureDGWay(p, _count) {
 
 		fs.writeFileSync(path.join(p, pApiManager), prettify(_altered, { indent: 4 }) + '\n', _utf8);
 	}).then(() => {
-		configurePortOffset(p, _count);
+		configurePortOffset(p, count);
 	});
 }
 
-async function configureDKManager(p, _count) {
+// configure key manager node in distributed
+async function configureDKManager(p, count) {
+	let args = {
+		_connectionUrl: 'jdbc:mysql://localhost:3306/apimgtdb?autoReconnect=true&amp;useSSL=false',
+		_defaultAutoCommit: 'false',
+		_description: 'The datasource used for the API Manager database',
+		_driver: 'com.mysql.jdbc.Driver',
+		_jndiName: 'jdbc/WSO2AM_DB',
+		_maxActive: '80',
+		_maxWait: '60000',
+		_minIdle: '5',
+		_name: 'WSO2AM_DB',
+		_password: 'hydrogen',
+		_testOnBorrow: 'true',
+		_username: 'mysql',
+		_validationInterval: '30000',
+		_validationQuery: 'SELECT 1',
+	};
+
 	await parseXML(null, path.join(p, pApiManager)).then(apim => {
 		let doc = new libxmljs.Document(apim);
 
@@ -524,10 +506,10 @@ async function configureDKManager(p, _count) {
 		let apiKeyValidator = altered.substring(altered.indexOf('<APIKeyValidator>'), altered.indexOf('</APIKeyValidator>'));
 		let secondAlter = apiKeyValidator.substring(0, apiKeyValidator.indexOf('<KeyValidatorClientType>')) +
 			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<KeyValidatorClientType>'), apiKeyValidator.lastIndexOf('<KeyValidatorClientType>'))) +
-			`${_t}<!-- ${_comment} gateway endpoints changed -->\n${_t}` +
+			`${_t}<!-- ${_comment} client type changed -->\n${_t}` +
 			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<KeyValidatorClientType>'), apiKeyValidator.indexOf('<EnableThriftServer>')) +
 			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<EnableThriftServer>'), apiKeyValidator.lastIndexOf('<EnableThriftServer>'))) +
-			`${_t}<!-- ${_comment} gateway endpoints changed -->\n${_t}` +
+			`${_t}<!-- ${_comment} thrift server disabled -->\n${_t}` +
 			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<EnableThriftServer>'), apiKeyValidator.length);
 
 		let tConf = altered.substring(altered.indexOf('<ThrottlingConfigurations>'), altered.indexOf('</ThrottlingConfigurations>'));
@@ -547,63 +529,47 @@ async function configureDKManager(p, _count) {
 
 		fs.writeFileSync(path.join(p, pApiManager), prettify(_altered, { indent: 4 }) + '\n', _utf8);
 	}).then(() => {
-		configurePortOffset(p, _count);
+		configurePortOffset(p, count);
 	}).then(() => {
-		var args = {
-			_name,
-			_description,
-			_jndiName,
-			_connectionUrl: 'jdbc:mysql://localhost:3306/apimgtdb?autoReconnect=true&amp;useSSL=false',
-			_username,
-			_defaultAutoCommit,
-			_driver: 'com.mysql.jdbc.Driver',
-			_maxActive,
-			_maxWait,
-			_testOnBorrow,
-			_validationQuery,
-			_validationInterval,
-		};
-
-		alterMasterDSAM(p, args);
+		alterMDatasourceAM(p, args);
 	}).then(() => {
-		var args = {
-			_name: 'WSO2UM_DB',
-			_description: 'The datasource used by user manager',
-			_jndiName: 'jdbc/WSO2UM_DB',
-			_connectionUrl: 'jdbc:mysql://localhost:3306/userdb?autoReconnect=true&amp;useSSL=false',
-			_username,
-			_driver: 'com.mysql.jdbc.Driver',
-			_maxActive: '50',
-			_maxWait,
-			_testOnBorrow: 'true',
-			_validationQuery: 'SELECT 1',
-			_validationInterval: '30000',
-		};
+		args._connectionUrl = 'jdbc:mysql://localhost:3306/userdb?autoReconnect=true&amp;useSSL=false';
+		args._description = 'The datasource used by user manager';
+		args._jndiName = 'jdbc/WSO2UM_DB';
+		args._name = 'WSO2UM_DB';
 
-		alterMasterDSUM(p, args);
+		alterMDatasourceUM(p, args);
 	}).then(() => {
-		var args = {
-			_name: 'WSO2REG_DB',
-			_description: 'The datasource used by the registry',
-			_jndiName: 'jdbc/WSO2REG_DB',
-			_connectionUrl:
-				'jdbc:mysql://localhost:3306/regdb?autoReconnect=true&amp;useSSL=false',
-			_username,
-			_driver: 'com.mysql.jdbc.Driver',
-			_maxActive: '50',
-			_maxWait,
-			_testOnBorrow: 'true',
-			_validationQuery: 'SELECT 1',
-			_validationInterval: '30000',
-		};
+		args._connectionUrl = 'jdbc:mysql://localhost:3306/regdb?autoReconnect=true&amp;useSSL=false';
+		args._description = 'The datasource used by the registry';
+		args._jndiName = 'jdbc/WSO2REG_DB';
+		args._name = 'WSO2REG_DB';
 
-		alterMasterDSREG(p, args);
+		alterMDatasourceREG(p, args);
 	}).then(() => {
 		alterUserMgt(p);
 	});
 }
 
-async function configureDPub(p, _count) {
+// configure publisher node in distributed
+async function configureDPub(p, count) {
+	let args = {
+		_connectionUrl: 'jdbc:mysql://localhost:3306/apimgtdb?autoReconnect=true&amp;useSSL=false',
+		_defaultAutoCommit: 'false',
+		_description: 'The datasource used for the API Manager database',
+		_driver: 'com.mysql.jdbc.Driver',
+		_jndiName: 'jdbc/WSO2AM_DB',
+		_maxActive: '80',
+		_maxWait: '60000',
+		_minIdle: '5',
+		_name: 'WSO2AM_DB',
+		_password: 'hydrogen',
+		_testOnBorrow: 'true',
+		_username: 'mysql',
+		_validationInterval: '30000',
+		_validationQuery: 'SELECT 1',
+	};
+
 	await parseXML(null, path.join(p, pApiManager)).then(apim => {
 		let doc = new libxmljs.Document(apim);
 
@@ -695,10 +661,10 @@ async function configureDPub(p, _count) {
 		let apiStore = altered.substring(altered.indexOf('<APIStore>'), altered.indexOf('</APIStore>'));
 		let fourthAlter = apiStore.substring(0, apiStore.indexOf('<DisplayURL>')) +
 			commentElement(apiStore.substring(apiStore.indexOf('<DisplayURL>'), apiStore.lastIndexOf('<DisplayURL>'))) +
-			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			`${_t}<!-- ${_comment} url changed -->\n${_t}` +
 			apiStore.substring(apiStore.lastIndexOf('<DisplayURL>'), apiStore.indexOf('<URL>')) +
 			commentElement(apiStore.substring(apiStore.indexOf('<URL>'), apiStore.lastIndexOf('<URL>'))) +
-			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			`${_t}<!-- ${_comment} url changed -->\n${_t}` +
 			apiStore.substring(apiStore.lastIndexOf('<URL>'), apiStore.length);
 
 		let tConf = altered.substring(altered.indexOf('<ThrottlingConfigurations>'), altered.indexOf('</ThrottlingConfigurations>'));
@@ -706,10 +672,10 @@ async function configureDPub(p, _count) {
 		let trafficmanager = tConf.substring(tConf.indexOf('<TrafficManager>'), tConf.indexOf('</TrafficManager>'));
 		let sfirstAlter = trafficmanager.substring(0, trafficmanager.indexOf('<ReceiverUrlGroup>')) +
 			commentElement(trafficmanager.substring(trafficmanager.indexOf('<ReceiverUrlGroup>'), trafficmanager.lastIndexOf('<ReceiverUrlGroup>'))) +
-			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			`${_t}<!-- ${_comment} url changed -->\n${_t}` +
 			trafficmanager.substring(trafficmanager.lastIndexOf('<ReceiverUrlGroup>'), trafficmanager.indexOf('<AuthUrlGroup>')) +
 			commentElement(trafficmanager.substring(trafficmanager.indexOf('<AuthUrlGroup>'), trafficmanager.lastIndexOf('<AuthUrlGroup>'))) +
-			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			`${_t}<!-- ${_comment} url changed -->\n${_t}` +
 			trafficmanager.substring(trafficmanager.lastIndexOf('<AuthUrlGroup>'), trafficmanager.length);
 
 		let dataPublisher = tConf.substring(tConf.indexOf('<DataPublisher>'), tConf.indexOf('</DataPublisher>'));
@@ -750,63 +716,48 @@ async function configureDPub(p, _count) {
 
 		fs.writeFileSync(path.join(p, pApiManager), prettify(_altered, { indent: 4 }) + '\n', _utf8);
 	}).then(() => {
-		configurePortOffset(p, _count);
+		configurePortOffset(p, count);
 	}).then(() => {
-		var args = {
-			_name,
-			_description,
-			_jndiName,
-			_connectionUrl: 'jdbc:mysql://localhost:3306/apimgtdb?autoReconnect=true&amp;useSSL=false',
-			_username,
-			_defaultAutoCommit,
-			_driver: 'com.mysql.jdbc.Driver',
-			_maxActive,
-			_maxWait,
-			_testOnBorrow,
-			_validationQuery,
-			_validationInterval,
-		};
-
-		alterMasterDSAM(p, args);
+		alterMDatasourceAM(p, args);
 	}).then(() => {
-		var args = {
-			_name: 'WSO2UM_DB',
-			_description: 'The datasource used by user manager',
-			_jndiName: 'jdbc/WSO2UM_DB',
-			_connectionUrl: 'jdbc:mysql://localhost:3306/userdb?autoReconnect=true&amp;useSSL=false',
-			_username,
-			_driver: 'com.mysql.jdbc.Driver',
-			_maxActive: '50',
-			_maxWait,
-			_testOnBorrow: 'true',
-			_validationQuery: 'SELECT 1',
-			_validationInterval: '30000',
-		};
+		args._connectionUrl = 'jdbc:mysql://localhost:3306/userdb?autoReconnect=true&amp;useSSL=false';
+		args._description = 'The datasource used by user manager';
+		args._jndiName = 'jdbc/WSO2UM_DB';
+		args._name = 'WSO2UM_DB';
 
-		alterMasterDSUM(p, args);
+		alterMDatasourceUM(p, args);
 	}).then(() => {
-		var args = {
-			_name: 'WSO2REG_DB',
-			_description: 'The datasource used by the registry',
-			_jndiName: 'jdbc/WSO2REG_DB',
-			_connectionUrl:
-				'jdbc:mysql://localhost:3306/regdb?autoReconnect=true&amp;useSSL=false',
-			_username,
-			_driver: 'com.mysql.jdbc.Driver',
-			_maxActive: '50',
-			_maxWait,
-			_testOnBorrow: 'true',
-			_validationQuery: 'SELECT 1',
-			_validationInterval: '30000',
-		};
+		args._connectionUrl = 'jdbc:mysql://localhost:3306/regdb?autoReconnect=true&amp;useSSL=false';
+		args._description = 'The datasource used by the registry';
+		args._jndiName = 'jdbc/WSO2REG_DB';
+		args._name = 'WSO2REG_DB';
 
-		alterMasterDSREG(p, args);
+		alterMDatasourceREG(p, args);
 	}).then(() => {
 		alterUserMgt(p);
 	});
 }
 
-async function configureDStore(p, _count) {
+// configure store node in distributed
+async function configureDStore(p, count) {
+	let args = {
+		_connectionUrl:
+			'jdbc:mysql://localhost:3306/apimgtdb?autoReconnect=true&amp;useSSL=false',
+		_defaultAutoCommit: 'false',
+		_description: 'The datasource used for the API Manager database',
+		_driver: 'com.mysql.jdbc.Driver',
+		_jndiName: 'jdbc/WSO2AM_DB',
+		_maxActive: '80',
+		_maxWait: '60000',
+		_minIdle: '5',
+		_name: 'WSO2AM_DB',
+		_password: 'hydrogen',
+		_testOnBorrow: 'true',
+		_username: 'mysql',
+		_validationInterval: '30000',
+		_validationQuery: 'SELECT 1',
+	};
+
 	await parseXML(null, path.join(p, pApiManager)).then(apim => {
 		let doc = new libxmljs.Document(apim);
 
@@ -890,10 +841,10 @@ async function configureDStore(p, _count) {
 			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
 			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<ServerURL>'), apiKeyValidator.indexOf('<KeyValidatorClientType>')) +
 			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<KeyValidatorClientType>'), apiKeyValidator.lastIndexOf('<KeyValidatorClientType>'))) +
-			`${_t}<!-- ${_comment} gateway endpoints changed -->\n${_t}` +
+			`${_t}<!-- ${_comment} client type changed -->\n${_t}` +
 			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<KeyValidatorClientType>'), apiKeyValidator.indexOf('<EnableThriftServer>')) +
 			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<EnableThriftServer>'), apiKeyValidator.lastIndexOf('<EnableThriftServer>'))) +
-			`${_t}<!-- ${_comment} gateway endpoints changed -->\n${_t}` +
+			`${_t}<!-- ${_comment} thrift server disabled -->\n${_t}` +
 			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<EnableThriftServer>'), apiKeyValidator.length);
 
 		let oauthConfig = altered.substring(altered.indexOf('<OAuthConfigurations>'), altered.indexOf('</OAuthConfigurations>'));
@@ -937,62 +888,29 @@ async function configureDStore(p, _count) {
 
 		fs.writeFileSync(path.join(p, pApiManager), prettify(_altered, { indent: 4 }) + '\n', _utf8);
 	}).then(() => {
-		configurePortOffset(p, _count);
+		configurePortOffset(p, count);
 	}).then(() => {
-		var args = {
-			_name,
-			_description,
-			_jndiName,
-			_connectionUrl: 'jdbc:mysql://localhost:3306/apimgtdb?autoReconnect=true&amp;useSSL=false',
-			_username,
-			_defaultAutoCommit,
-			_driver: 'com.mysql.jdbc.Driver',
-			_maxActive,
-			_maxWait,
-			_testOnBorrow,
-			_validationQuery,
-			_validationInterval,
-		};
-
-		alterMasterDSAM(p, args);
+		alterMDatasourceAM(p, args);
 	}).then(() => {
-		var args = {
-			_name: 'WSO2UM_DB',
-			_description: 'The datasource used by user manager',
-			_jndiName: 'jdbc/WSO2UM_DB',
-			_connectionUrl: 'jdbc:mysql://localhost:3306/userdb?autoReconnect=true&amp;useSSL=false',
-			_username,
-			_driver: 'com.mysql.jdbc.Driver',
-			_maxActive: '50',
-			_maxWait,
-			_testOnBorrow: 'true',
-			_validationQuery: 'SELECT 1',
-			_validationInterval: '30000',
-		};
+		args._connectionUrl = 'jdbc:mysql://localhost:3306/userdb?autoReconnect=true&amp;useSSL=false';
+		args._description = 'The datasource used by user manager';
+		args._jndiName = 'jdbc/WSO2UM_DB';
+		args._name = 'WSO2UM_DB';
 
-		alterMasterDSUM(p, args);
+		alterMDatasourceUM(p, args);
 	}).then(() => {
-		var args = {
-			_name: 'WSO2REG_DB',
-			_description: 'The datasource used by the registry',
-			_jndiName: 'jdbc/WSO2REG_DB',
-			_connectionUrl:
-				'jdbc:mysql://localhost:3306/regdb?autoReconnect=true&amp;useSSL=false',
-			_username,
-			_driver: 'com.mysql.jdbc.Driver',
-			_maxActive: '50',
-			_maxWait,
-			_testOnBorrow: 'true',
-			_validationQuery: 'SELECT 1',
-			_validationInterval: '30000',
-		};
+		args._connectionUrl = 'jdbc:mysql://localhost:3306/regdb?autoReconnect=true&amp;useSSL=false';
+		args._description = 'The datasource used by the registry';
+		args._jndiName = 'jdbc/WSO2REG_DB';
+		args._name = 'WSO2REG_DB';
 
-		alterMasterDSREG(p, args);
+		alterMDatasourceREG(p, args);
 	}).then(() => {
 		alterUserMgt(p);
 	});
 }
 
+// configure traffic manager node in distributed
 async function configureDTManager(p, _count) {
 	// replace registry.xml with registry_TM.xml
 	fs.removeSync(path.join(p, pRegistry));
@@ -1005,11 +923,11 @@ async function configureDTManager(p, _count) {
 	await parseXML(null, path.join(p, pApiManager)).then(apim => {
 		let doc = new libxmljs.Document(apim);
 
-		let enableThriftSElement = new libxmljs.Element(doc, 'EnableThriftServer', 'false');
+		let thriftElement = new libxmljs.Element(doc, 'EnableThriftServer', 'false');
 
 		apim.root()
 			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="EnableThriftServer"]')
-			.addNextSibling(enableThriftSElement);
+			.addNextSibling(thriftElement);
 
 		let altered = removeDeclaration(apim.toString());
 
@@ -1026,12 +944,12 @@ async function configureDTManager(p, _count) {
 	});
 }
 
-// #region user-mgt elements, alterations and configurations
-
+// alter user-mgt.xml
 async function alterUserMgt(p) {
 	await parseXML(null, path.join(p, pUserMgt)).then(usermgt => {
 		let doc = new libxmljs.Document(usermgt);
-		let genericElement = new libxmljs.Element(doc, 'Property', 'jdbc/WSO2UM_DB').attr({ name: 'dataSource' });
+		let propertyElement = new libxmljs.Element(doc, 'Property', 'jdbc/WSO2UM_DB')
+			.attr({ name: 'dataSource' });
 
 		let dsElement = usermgt.root()
 			.get('//*[local-name()="Realm"]/*[local-name()="Configuration"]/*[local-name()="Property"][@name="dataSource"]');
@@ -1040,7 +958,7 @@ async function alterUserMgt(p) {
 
 		usermgt.root()
 			.get('//*[local-name()="Realm"]/*[local-name()="Configuration"]/*[local-name()="Property"][@name="dataSource"]')
-			.addNextSibling(genericElement);
+			.addNextSibling(propertyElement);
 
 		usermgt.root()
 			.get('//*[local-name()="Realm"]/*[local-name()="Configuration"]/*[local-name()="Property"][@name="dataSource"][1]')
@@ -1055,20 +973,16 @@ async function alterUserMgt(p) {
 		let _altered = altered.substring(0, altered.indexOf('<Property name="dataSource">jdbc/WSO2UM_DB')) +
 			`${_n}<!-- ${_comment} datasource changed -->\n` +
 			altered.substring(altered.indexOf('<Property name="dataSource">jdbc/WSO2UM_DB'), altered.length);
-		// let _altered = '';
 
 		fs.writeFileSync(path.join(p, pUserMgt), prettify(_altered, { indent: 4 }) + '\n', _utf8);
 	});
 }
 
-// #endregion
-
-// #region datasource elements, alterations and configurations
-
-async function alterMasterDSAM(p, args) {
+// alter api manager datasource
+async function alterMDatasourceAM(p, args) {
 	await parseXML(null, path.join(p, pMasterDatasource)).then(master => {
 		let doc = new libxmljs.Document(master);
-		let genericElement = buildDatasource(doc, args);
+		let datasourceElement = buildDatasource(doc, args);
 
 		let amElement = master.root()
 			.get('//*[local-name()="datasources"]/*[local-name()="datasource"][name="WSO2AM_DB"]');
@@ -1077,7 +991,7 @@ async function alterMasterDSAM(p, args) {
 
 		master.root()
 			.get('//*[local-name()="datasources"]/*[local-name()="datasource"][name="WSO2AM_DB"]')
-			.addNextSibling(genericElement);
+			.addNextSibling(datasourceElement);
 
 		master.root()
 			.get('//*[local-name()="datasources"]/*[local-name()="datasource"][name="WSO2AM_DB"][1]')
@@ -1091,53 +1005,56 @@ async function alterMasterDSAM(p, args) {
 
 		let _altered = altered.substring(0, altered.indexOf('<datasource><name>WSO2AM_DB</name>')) +
 			`${_n}<!-- ${_comment} datasource added -->\n` +
-			prettify(altered.substring(altered.indexOf('<datasource><name>WSO2AM_DB</name>'), altered.indexOf('</definition></datasource>') + '</definition></datasource>'.length), { indent: 4 }) +
+			altered.substring(altered.indexOf('<datasource><name>WSO2AM_DB</name>'), altered.indexOf('</definition></datasource>') + '</definition></datasource>'.length) +
 			altered.substring(altered.indexOf('</definition></datasource>') + '</definition></datasource>'.length, altered.length);
 
-		fs.writeFileSync(path.join(p, pMasterDatasource), prettify(_altered, { indent: 4 }), _utf8);
+		fs.writeFileSync(path.join(p, pMasterDatasource), prettify(_altered, { indent: 4 }) + '\n', _utf8);
 	});
 }
 
-async function alterMasterDSUM(p, args) {
+// alter user datasource
+async function alterMDatasourceUM(p, args) {
 	await parseXML(null, path.join(p, pMasterDatasource)).then(master => {
 		let doc = new libxmljs.Document(master);
-		let genericElement = buildDatasource(doc, args);
+		let datasourceElement = buildDatasource(doc, args);
 
 		master.root()
 			.get('//*[local-name()="datasources"]/*[local-name()="datasource"][name="WSO2AM_DB"]')
-			.addNextSibling(genericElement);
+			.addNextSibling(datasourceElement);
 
 		let altered = removeDeclaration(master.toString());
 
 		let _altered = altered.substring(0, altered.indexOf(`<datasource><name>${args._name}</name>`)) +
 			`${_n}<!-- ${_comment} datasource added -->\n` +
-			prettify(altered.substring(altered.indexOf(`<datasource><name>${args._name}</name>`), altered.indexOf('</definition></datasource>') + '</definition></datasource>'.length), { indent: 4 }) +
+			altered.substring(altered.indexOf(`<datasource><name>${args._name}</name>`), altered.indexOf('</definition></datasource>') + '</definition></datasource>'.length) +
 			altered.substring(altered.indexOf('</definition></datasource>') + '</definition></datasource>'.length, altered.length);
 
-		fs.writeFileSync(path.join(p, pMasterDatasource), prettify(_altered, { indent: 4 }), _utf8);
+		fs.writeFileSync(path.join(p, pMasterDatasource), prettify(_altered, { indent: 4 }) + '\n', _utf8);
 	});
 }
 
-async function alterMasterDSREG(p, args) {
+// alter registry datasource
+async function alterMDatasourceREG(p, args) {
 	await parseXML(null, path.join(p, pMasterDatasource)).then(master => {
 		let doc = new libxmljs.Document(master);
-		let genericElement = buildDatasource(doc, args);
+		let datasourceElement = buildDatasource(doc, args);
 
 		master.root()
 			.get('//*[local-name()="datasources"]/*[local-name()="datasource"][name="WSO2UM_DB"]')
-			.addNextSibling(genericElement);
+			.addNextSibling(datasourceElement);
 
 		let altered = removeDeclaration(master.toString());
 
 		let _altered = altered.substring(0, altered.indexOf(`<datasource><name>${args._name}</name>`)) +
 			`${_n}<!-- ${_comment} datasource added -->\n` +
-			prettify(altered.substring(altered.indexOf(`<datasource><name>${args._name}</name>`), altered.indexOf('</definition></datasource>') + '</definition></datasource>'.length), { indent: 4 }) +
+			altered.substring(altered.indexOf(`<datasource><name>${args._name}</name>`), altered.indexOf('</definition></datasource>') + '</definition></datasource>'.length) +
 			altered.substring(altered.indexOf('</definition></datasource>') + '</definition></datasource>'.length, altered.length);
 
-		fs.writeFileSync(path.join(p, pMasterDatasource), prettify(_altered, { indent: 4 }), _utf8);
+		fs.writeFileSync(path.join(p, pMasterDatasource), prettify(_altered, { indent: 4 }) + '\n', _utf8);
 	});
 }
 
+// build datasource elements
 function buildDatasource(doc, args) {
 	let genericElement = new libxmljs.Element(doc, 'datasource');
 
@@ -1158,7 +1075,7 @@ function buildDatasource(doc, args) {
 			.parent()
 			.node('username', args._username)
 			.parent()
-			.node('password', 'hydrogen')
+			.node('password', args._password)
 			.parent()
 			.node('driverClassName', args._driver)
 			.parent()
@@ -1175,46 +1092,55 @@ function buildDatasource(doc, args) {
 			.node('validationInterval', args._validationInterval)
 			.parent()
 			.node('defaultAutoCommit', args._defaultAutoCommit);
-	else
-		genericElement
-			.node('name', args._name)
-			.parent()
-			.node('description', args._description)
-			.parent()
-			.node('jndiConfig')
-			.node('name', args._jndiName)
-			.parent()
-			.parent()
-			.node('definition')
-			.attr({ type: 'RDBMS' })
-			.node('configuration')
-			.node('url', args._connectionUrl)
-			.parent()
-			.node('username', args._username)
-			.parent()
-			.node('password', 'hydrogen')
-			.parent()
-			.node('driverClassName', args._driver)
-			.parent()
-			.node('maxActive', args._maxActive)
-			.parent()
-			.node('maxWait', args._maxWait)
-			.parent()
-			.node('minIdle', args._minIdle)
-			.parent()
-			.node('testOnBorrow', args._testOnBorrow)
-			.parent()
-			.node('validationQuery', args._validationQuery)
-			.parent()
-			.node('validationInterval', args._validationInterval);
 
 	return genericElement;
 }
 
-// #endregion
+// build docs and additional notes
+function buildDDDoc(ocli) {
+	const table = new Table({
+		style: {
+			head: ['reset'],
+		},
+		head: [
+			'node',
+			'port-offset',
+			'port',
+			'profile',
+		],
+		chars: {
+			mid: '',
+			'left-mid': '',
+			'mid-mid': '',
+			'right-mid': '',
+		},
+	});
+
+	table.push(
+		['', '', '', ''],
+		['gateway', _gateway, `${_p9443 + _gateway}`, ''],
+		['keymanager', _keymanager, `${_p9443 + _keymanager}`, 'key-manager'],
+		['publisher', _publisher, `${_p9443 + _publisher}`, 'api-publisher'],
+		['store', _store, `${_p9443 + _store}`, 'api-store'],
+		['trafficmanager', _trafficmanager, `${_p9443 + _trafficmanager}`, 'traffic-manager']
+	);
+
+	ocli.log('\n' + table.toString());
+	ocli.log(`
+NOTE: Please run the profile optimization before running the nodes for testing or production
+
+Start the distributed nodes in the following order
+	01. Key Manager
+	02. Publisher
+	03. Store
+	04. Traffic Manager
+	05. Gateway
+`);
+}
 
 // #endregion
 
+// alter element
 function alterElement(element, tag, description) {
 	let alter = element.substring(0, element.indexOf(`<${tag}>`)) +
 		commentElement(element.substring(element.indexOf(`<${tag}>`), element.lastIndexOf(`<${tag}>`))) +
@@ -1223,25 +1149,26 @@ function alterElement(element, tag, description) {
 	return alter;
 }
 
+// comment elements
 function commentElement(element) {
-	let comment = '<!-- ' + element + ` -->${_n}`;
-	return comment;
+	return '<!-- ' + element + ` -->${_n}`;
 }
 
-async function configurePortOffset(p, _count) {
-	if (_count > 0)
+// configure port offset
+async function configurePortOffset(p, count) {
+	if (count > 0)
 		await parseXML(null, path.join(p, pCarbon)).then(carbon => {
 			let doc = new libxmljs.Document(carbon);
 
 			// Offset node creation
-			let offsetElement = new libxmljs.Element(doc, 'Offset', _count.toString());
+			let offsetElement = new libxmljs.Element(doc, 'Offset', count.toString());
 
 			carbon.root()
 				.get('//*[local-name()="Ports"]/*[local-name()="Offset"]')
 				.addNextSibling(offsetElement);
 
 			let _altered = carbon.toString().replace('encoding="UTF-8"', 'encoding="ISO-8859-1"');
-			_altered = alterElement(_altered, 'Offset', `port offset ${_count}`);
+			_altered = alterElement(_altered, 'Offset', `port offset ${count}`);
 
 			fs.writeFileSync(path.join(p, pCarbon), _altered, _utf8);
 		});
