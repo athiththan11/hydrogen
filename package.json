@@ -25,6 +25,7 @@
 		"chai": "4.2.0",
 		"eslint": "5.16.0",
 		"eslint-config-oclif": "3.1.0",
+		"fsify": "3.0.0",
 		"globby": "10.0.1",
 		"mocha": "5.2.0",
 		"nyc": "13.3.0",
