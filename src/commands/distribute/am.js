@@ -16,8 +16,12 @@ class DistributeAMCommand extends Command {
 			this.log(`starting to configure apim-${version} ${datasource ? 'with ' + datasource + ' ' : ''}for distributed setup`);
 			await Generic.configure(this, { distributed: true });
 		}
+		if (flags['is-km']) {
+			this.log(`starting to configure apim-${version} ${datasource ? 'with ' + datasource + ' ' : ''}with IS as Keymanager`);
+			await Generic.configure(this, { 'is-km': true });
+		}
 
-		if (!flags['multiple-gateway'] && !flags.distributed) {
+		if (!flags['multiple-gateway'] && !flags.distributed && !flags['is-km']) {
 			this._help();
 		}
 	}
@@ -63,7 +67,7 @@ DistributeAMCommand.flags = {
 		hidden: false,
 		multiple: false,
 		required: false,
-		exclusive: ['distributed'],
+		exclusive: ['distributed', 'is-km'],
 	}),
 	distributed: flags.boolean({
 		char: 'D',
@@ -71,7 +75,15 @@ DistributeAMCommand.flags = {
 		hidden: false,
 		multiple: false,
 		required: false,
-		exclusive: ['multiple-gatway'],
+		exclusive: ['multiple-gateway', 'is-km'],
+	}),
+	'is-km': flags.boolean({
+		char: 'I',
+		description: 'IS as Keymanager setup',
+		hidden: false,
+		multiple: false,
+		required: false,
+		exclusive: ['multiple-gateway', 'distributed'],
 	}),
 };
 

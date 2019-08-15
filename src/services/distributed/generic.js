@@ -12,6 +12,7 @@ let pApiManager = '/repository/conf/api-manager.xml';
 let pAxis2 = '/repository/conf/axis2/axis2.xml';
 let pAxis2TM = '/repository/conf/axis2/axis2_TM.xml';
 let pCarbon = '/repository/conf/carbon.xml';
+let pIdentity = '/repository/conf/identity/identity.xml';
 let pMasterDatasource = '/repository/conf/datasources/master-datasources.xml';
 let pRegistry = '/repository/conf/registry.xml';
 let pRegistryTM = '/repository/conf/registry_TM.xml';
@@ -29,6 +30,10 @@ let _c = {
 		'publisher',
 		'store',
 		'trafficmanager',
+	],
+	'is-km': [
+		'allinone',
+		'iskm',
 	],
 };
 
@@ -59,9 +64,11 @@ exports.configure = async function (ocli, args) {
 	if (process.env.NODE_ENV === 'mocha' && args['multiple-gateway']) {
 		_p = path.join(process.cwd(), process.env.MOCHA_MULTIPLE_GATEWAY);
 	}
-
 	if (process.env.NODE_ENV === 'mocha' && args.distributed) {
 		_p = path.join(process.cwd(), process.env.MOCHA_DISTRIBUTED);
+	}
+	if (process.env.NODE_ENV === 'mocha' && args['is-km']) {
+		_p = path.join(process.cwd(), process.env.MOCHA_ISKM);
 	}
 	// #endregion
 
@@ -69,6 +76,8 @@ exports.configure = async function (ocli, args) {
 		await configureMultipleGateway(ocli);
 	if (args.distributed)
 		await configureDistributedDeployment(ocli);
+	if (args['is-km'])
+		await configureISasKM(ocli);
 };
 
 // #region publish multiple gateway configurations
@@ -466,7 +475,7 @@ async function configureDGWay(p, count) {
 // configure key manager node in distributed
 async function configureDKManager(p, count) {
 	let args = {
-		_connectionUrl: 'jdbc:mysql://localhost:3306/apimgtdb?autoReconnect=true&amp;useSSL=false',
+		_connectionUrl: 'jdbc:mysql://localhost:3306/apimgtdb?autoReconnect=true&useSSL=false',
 		_defaultAutoCommit: 'false',
 		_description: 'The datasource used for the API Manager database',
 		_driver: 'com.mysql.jdbc.Driver',
@@ -544,14 +553,14 @@ async function configureDKManager(p, count) {
 	}).then(() => {
 		alterMDatasourceAM(p, args);
 	}).then(() => {
-		args._connectionUrl = 'jdbc:mysql://localhost:3306/userdb?autoReconnect=true&amp;useSSL=false';
+		args._connectionUrl = 'jdbc:mysql://localhost:3306/userdb?autoReconnect=true&useSSL=false';
 		args._description = 'The datasource used by user manager';
 		args._jndiName = 'jdbc/WSO2UM_DB';
 		args._name = 'WSO2UM_DB';
 
 		alterMDatasourceUM(p, args);
 	}).then(() => {
-		args._connectionUrl = 'jdbc:mysql://localhost:3306/regdb?autoReconnect=true&amp;useSSL=false';
+		args._connectionUrl = 'jdbc:mysql://localhost:3306/regdb?autoReconnect=true&useSSL=false';
 		args._description = 'The datasource used by the registry';
 		args._jndiName = 'jdbc/WSO2REG_DB';
 		args._name = 'WSO2REG_DB';
@@ -565,7 +574,7 @@ async function configureDKManager(p, count) {
 // configure publisher node in distributed
 async function configureDPub(p, count) {
 	let args = {
-		_connectionUrl: 'jdbc:mysql://localhost:3306/apimgtdb?autoReconnect=true&amp;useSSL=false',
+		_connectionUrl: 'jdbc:mysql://localhost:3306/apimgtdb?autoReconnect=true&useSSL=false',
 		_defaultAutoCommit: 'false',
 		_description: 'The datasource used for the API Manager database',
 		_driver: 'com.mysql.jdbc.Driver',
@@ -731,14 +740,14 @@ async function configureDPub(p, count) {
 	}).then(() => {
 		alterMDatasourceAM(p, args);
 	}).then(() => {
-		args._connectionUrl = 'jdbc:mysql://localhost:3306/userdb?autoReconnect=true&amp;useSSL=false';
+		args._connectionUrl = 'jdbc:mysql://localhost:3306/userdb?autoReconnect=true&useSSL=false';
 		args._description = 'The datasource used by user manager';
 		args._jndiName = 'jdbc/WSO2UM_DB';
 		args._name = 'WSO2UM_DB';
 
 		alterMDatasourceUM(p, args);
 	}).then(() => {
-		args._connectionUrl = 'jdbc:mysql://localhost:3306/regdb?autoReconnect=true&amp;useSSL=false';
+		args._connectionUrl = 'jdbc:mysql://localhost:3306/regdb?autoReconnect=true&useSSL=false';
 		args._description = 'The datasource used by the registry';
 		args._jndiName = 'jdbc/WSO2REG_DB';
 		args._name = 'WSO2REG_DB';
@@ -753,7 +762,7 @@ async function configureDPub(p, count) {
 async function configureDStore(p, count) {
 	let args = {
 		_connectionUrl:
-			'jdbc:mysql://localhost:3306/apimgtdb?autoReconnect=true&amp;useSSL=false',
+			'jdbc:mysql://localhost:3306/apimgtdb?autoReconnect=true&useSSL=false',
 		_defaultAutoCommit: 'false',
 		_description: 'The datasource used for the API Manager database',
 		_driver: 'com.mysql.jdbc.Driver',
@@ -903,14 +912,14 @@ async function configureDStore(p, count) {
 	}).then(() => {
 		alterMDatasourceAM(p, args);
 	}).then(() => {
-		args._connectionUrl = 'jdbc:mysql://localhost:3306/userdb?autoReconnect=true&amp;useSSL=false';
+		args._connectionUrl = 'jdbc:mysql://localhost:3306/userdb?autoReconnect=true&useSSL=false';
 		args._description = 'The datasource used by user manager';
 		args._jndiName = 'jdbc/WSO2UM_DB';
 		args._name = 'WSO2UM_DB';
 
 		alterMDatasourceUM(p, args);
 	}).then(() => {
-		args._connectionUrl = 'jdbc:mysql://localhost:3306/regdb?autoReconnect=true&amp;useSSL=false';
+		args._connectionUrl = 'jdbc:mysql://localhost:3306/regdb?autoReconnect=true&useSSL=false';
 		args._description = 'The datasource used by the registry';
 		args._jndiName = 'jdbc/WSO2REG_DB';
 		args._name = 'WSO2REG_DB';
@@ -1144,6 +1153,228 @@ Start the distributed nodes in the following order
 	03. Store
 	04. Traffic Manager
 	05. Gateway
+`);
+}
+
+// #endregion
+
+// #region is as km configurations
+
+async function configureISasKM(ocli) {
+	// clean .DS_Store in mac filesystem
+	if (fs.existsSync(path.join(_p, '.DS_Store'))) {
+		fs.removeSync(path.join(_p, '.DS_Store'));
+	}
+
+	let sync = fs.readdirSync(_p);
+	if (sync.length === 2) {
+		let count = 0;
+		traverseISasKM(ocli, sync, count);
+	}
+}
+
+function traverseISasKM(ocli, sync, count) {
+	if (count < _c['is-km'].length) {
+		let pack = sync.shift();
+		cli.action.start(`configuring ${pack}`);
+		if (pack.startsWith('wso2am')) {
+			configureISKMAIO(path.join(_p, pack)).then(() => {
+				cli.action.stop();
+			}).then(() => {
+				traverseISasKM(ocli, sync, ++count);
+			});
+		}
+		if (pack.startsWith('wso2is-km')) {
+			configureISKM(path.join(_p, pack)).then(() => {
+				cli.action.stop();
+			}).then(() => {
+				traverseISasKM(ocli, sync, ++count);
+			});
+		}
+	} else {
+		buildISKMDoc(ocli);
+	}
+}
+
+// configure is-km node in is-km setup
+async function configureISKM(p) {
+	let args = {
+		_connectionUrl:
+			'jdbc:mysql://localhost:3306/apimgtdb?autoReconnect=true&useSSL=false',
+		_defaultAutoCommit: 'false',
+		_description: 'The datasource used for the API Manager database',
+		_driver: 'com.mysql.jdbc.Driver',
+		_jndiName: 'jdbc/WSO2AM_DB',
+		_maxActive: '80',
+		_maxWait: '60000',
+		_minIdle: '5',
+		_name: 'WSO2AM_DB',
+		_password: 'hydrogen',
+		_testOnBorrow: 'true',
+		_username: 'mysql',
+		_validationInterval: '30000',
+		_validationQuery: 'SELECT 1',
+	};
+
+	await parseXML(null, path.join(p, pApiManager)).then(apim => {
+		let doc = new libxmljs.Document(apim);
+
+		let serverUrlElement = new libxmljs.Element(doc, 'ServerURL', `https://localhost:${_p9443}/services/`);
+
+		apim.root()
+			.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]/*[local-name()="Environment"]/*[local-name()="ServerURL"]')
+			.addNextSibling(serverUrlElement);
+
+		let revokeElement = new libxmljs.Element(doc, 'RevokeAPIURL', `https://localhost:${_p8243}/revoke`);
+
+		apim.root()
+			.get('//*[local-name()="OAuthConfigurations"]/*[local-name()="RevokeAPIURL"]')
+			.addNextSibling(revokeElement);
+
+		let altered = removeDeclaration(apim.toString());
+
+		let environments = altered.substring(altered.indexOf('<Environments>'), altered.indexOf('</Environments>'));
+		let firstAlter = alterElement(environments, 'ServerURL', 'server url changed ');
+
+		let oauthConfig = altered.substring(altered.indexOf('<OAuthConfigurations>'), altered.indexOf('</OAuthConfigurations>'));
+		let secondAlter = alterElement(oauthConfig, 'RevokeAPIURL', 'revoke api url added ');
+
+		let _altered = altered.substring(0, altered.indexOf('<Environments>')) +
+			firstAlter +
+			altered.substring(altered.indexOf('</Environments>'), altered.indexOf('<OAuthConfigurations>')) +
+			secondAlter +
+			altered.substring(altered.indexOf('</OAuthConfigurations>'));
+
+		fs.writeFileSync(path.join(p, pApiManager), prettify(_altered, { indent: 4 }) + '\n', _utf8);
+	}).then(() => {
+		configurePortOffset(p, 1);
+	}).then(() => {
+		alterMDatasourceAM(p, args);
+	}).then(() => {
+		args._connectionUrl = 'jdbc:mysql://localhost:3306/userdb?autoReconnect=true&useSSL=false';
+		args._description = 'The datasource used by user manager';
+		args._jndiName = 'jdbc/WSO2UM_DB';
+		args._name = 'WSO2UM_DB';
+
+		alterMDatasourceUM(p, args);
+	}).then(() => {
+		alterUserMgt(p);
+	});
+}
+
+// configure all-in-one api manager node in is-km setup
+async function configureISKMAIO(p) {
+	let args = {
+		_connectionUrl:
+			'jdbc:mysql://localhost:3306/apimgtdb?autoReconnect=true&useSSL=false',
+		_defaultAutoCommit: 'false',
+		_description: 'The datasource used for the API Manager database',
+		_driver: 'com.mysql.jdbc.Driver',
+		_jndiName: 'jdbc/WSO2AM_DB',
+		_maxActive: '80',
+		_maxWait: '60000',
+		_minIdle: '5',
+		_name: 'WSO2AM_DB',
+		_password: 'hydrogen',
+		_testOnBorrow: 'true',
+		_username: 'mysql',
+		_validationInterval: '30000',
+		_validationQuery: 'SELECT 1',
+	};
+
+	await parseXML(null, path.join(p, pApiManager)).then(apim => {
+		let doc = new libxmljs.Document(apim);
+
+		let serverUrlElement = new libxmljs.Element(doc, 'ServerURL', `https://localhost:${_p9443 + 1}/services/`);
+
+		apim.root()
+			.get('//*[local-name()="AuthManager"]/*[local-name()="ServerURL"]')
+			.addNextSibling(serverUrlElement);
+
+		apim.root()
+			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="ServerURL"]')
+			.addNextSibling(serverUrlElement);
+
+		let keyValCElement = new libxmljs.Element(doc, 'KeyValidatorClientType', 'WSClient');
+
+		apim.root()
+			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="KeyValidatorClientType"]')
+			.addNextSibling(keyValCElement);
+
+		let enableThriftSElement = new libxmljs.Element(doc, 'EnableThriftServer', 'false');
+
+		apim.root()
+			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="EnableThriftServer"]')
+			.addNextSibling(enableThriftSElement);
+
+		let altered = removeDeclaration(apim.toString());
+
+		let authManager = altered.substring(altered.indexOf('<AuthManager>'), altered.indexOf('</AuthManager>'));
+		let firstAlter = alterElement(authManager, 'ServerURL', 'server url changed ');
+
+		let apiKeyValidator = altered.substring(altered.lastIndexOf('<APIKeyValidator>'), altered.lastIndexOf('</APIKeyValidator>'));
+		let secondAlter = apiKeyValidator.substring(0, apiKeyValidator.indexOf('<ServerURL>')) +
+			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<ServerURL>'), apiKeyValidator.lastIndexOf('<ServerURL>'))) +
+			`${_t}<!-- ${_comment} server url changed -->\n${_t}` +
+			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<ServerURL>'), apiKeyValidator.indexOf('<KeyValidatorClientType>')) +
+			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<KeyValidatorClientType>'), apiKeyValidator.lastIndexOf('<KeyValidatorClientType>'))) +
+			`${_t}<!-- ${_comment} client type changed -->\n${_t}` +
+			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<KeyValidatorClientType>'), apiKeyValidator.indexOf('<EnableThriftServer>')) +
+			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<EnableThriftServer>'), apiKeyValidator.lastIndexOf('<EnableThriftServer>'))) +
+			`${_t}<!-- ${_comment} thrift server disabled -->\n${_t}` +
+			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<EnableThriftServer>'), apiKeyValidator.length);
+
+		let _altered = altered.substring(0, altered.indexOf('<AuthManager>')) +
+			firstAlter +
+			altered.substring(altered.indexOf('</AuthManager>'), altered.indexOf('<APIKeyValidator>')) +
+			secondAlter +
+			altered.substring(altered.indexOf('</APIKeyValidator>'));
+
+		fs.writeFileSync(path.join(p, pApiManager), prettify(_altered, { indent: 4 }) + '\n', _utf8);
+	}).then(() => {
+		alterMDatasourceAM(p, args);
+	}).then(() => {
+		args._connectionUrl = 'jdbc:mysql://localhost:3306/userdb?autoReconnect=true&useSSL=false';
+		args._description = 'The datasource used by user manager';
+		args._jndiName = 'jdbc/WSO2UM_DB';
+		args._name = 'WSO2UM_DB';
+
+		alterMDatasourceUM(p, args);
+	}).then(() => {
+		alterUserMgt(p);
+	});
+}
+
+// build docs and additional notes
+function buildISKMDoc(ocli) {
+	const table = new Table({
+		style: {
+			head: ['reset'],
+		},
+		head: [
+			'node',
+			'port-offset',
+			'port',
+		],
+		chars: {
+			mid: '',
+			'left-mid': '',
+			'mid-mid': '',
+			'right-mid': '',
+		},
+	});
+
+	table.push(
+		['', '', ''],
+		['api-manager', '0', `${_p9443}`],
+		['is-keymanager', '1', `${_p9443 + 1}`],
+	);
+
+	ocli.log('\n' + table.toString());
+	ocli.log(`
+Start the configured nodes in the following order
+	01. Key Manager
+	02. API Manager
 `);
 }
 
