@@ -59,7 +59,7 @@
 		"postpack": "rimraf oclif.manifest.json",
 		"posttest": "eslint --ignore-path .gitignore .",
 		"prepack": "oclif-dev manifest && oclif-dev readme",
-		"test": "NODE_ENV=mocha MOCHA_MULTIPLE_GATEWAY='/multiple-gateway' MOCHA_DISTRIBUTED='/distributed' nyc mocha --forbid-only \"test/**/*.test.js\"",
+		"test": "NODE_ENV=mocha MOCHA_MULTIPLE_GATEWAY='/multiple-gateway' MOCHA_DISTRIBUTED='/distributed' MOCHA_ISKM='/is-km' nyc mocha --forbid-only \"test/**/*.test.js\"",
 		"version": "oclif-dev readme && git add README.md"
 	}
 }
