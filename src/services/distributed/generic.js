@@ -54,6 +54,17 @@ let _p9711 = 9711;
 
 exports.configure = async function (ocli, args) {
 	cli.log('\n');
+
+	// #region test environments
+	if (process.env.NODE_ENV === 'mocha' && args['multiple-gateway']) {
+		_p = path.join(process.cwd(), process.env.MOCHA_MULTIPLE_GATEWAY);
+	}
+
+	if (process.env.NODE_ENV === 'mocha' && args.distributed) {
+		_p = path.join(process.cwd(), process.env.MOCHA_DISTRIBUTED);
+	}
+	// #endregion
+
 	if (args['multiple-gateway'])
 		await configureMultipleGateway(ocli);
 	if (args.distributed)
@@ -1057,41 +1068,39 @@ async function alterMDatasourceREG(p, args) {
 // build datasource elements
 function buildDatasource(doc, args) {
 	let genericElement = new libxmljs.Element(doc, 'datasource');
-
-	if (args._defaultAutoCommit)
-		genericElement
-			.node('name', args._name)
-			.parent()
-			.node('description', args._description)
-			.parent()
-			.node('jndiConfig')
-			.node('name', args._jndiName)
-			.parent()
-			.parent()
-			.node('definition')
-			.attr({ type: 'RDBMS' })
-			.node('configuration')
-			.node('url', args._connectionUrl)
-			.parent()
-			.node('username', args._username)
-			.parent()
-			.node('password', args._password)
-			.parent()
-			.node('driverClassName', args._driver)
-			.parent()
-			.node('maxActive', args._maxActive)
-			.parent()
-			.node('maxWait', args._maxWait)
-			.parent()
-			.node('minIdle', args._minIdle)
-			.parent()
-			.node('testOnBorrow', args._testOnBorrow)
-			.parent()
-			.node('validationQuery', args._validationQuery)
-			.parent()
-			.node('validationInterval', args._validationInterval)
-			.parent()
-			.node('defaultAutoCommit', args._defaultAutoCommit);
+	genericElement
+		.node('name', args._name)
+		.parent()
+		.node('description', args._description)
+		.parent()
+		.node('jndiConfig')
+		.node('name', args._jndiName)
+		.parent()
+		.parent()
+		.node('definition')
+		.attr({ type: 'RDBMS' })
+		.node('configuration')
+		.node('url', args._connectionUrl)
+		.parent()
+		.node('username', args._username)
+		.parent()
+		.node('password', args._password)
+		.parent()
+		.node('driverClassName', args._driver)
+		.parent()
+		.node('maxActive', args._maxActive)
+		.parent()
+		.node('maxWait', args._maxWait)
+		.parent()
+		.node('minIdle', args._minIdle)
+		.parent()
+		.node('testOnBorrow', args._testOnBorrow)
+		.parent()
+		.node('validationQuery', args._validationQuery)
+		.parent()
+		.node('validationInterval', args._validationInterval)
+		.parent()
+		.node('defaultAutoCommit', args._defaultAutoCommit);
 
 	return genericElement;
 }
