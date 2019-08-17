@@ -1,7 +1,7 @@
 {
 	"name": "hydrogen-cli",
 	"description": "an interactive cli tool for wso2 servers",
-	"version": "0.2.0",
+	"version": "0.2.1",
 	"author": "Athiththan @athiththan11",
 	"bin": {
 		"hydrogen": "./bin/run"
@@ -17,7 +17,8 @@
 		"fs-extra": "8.1.0",
 		"libxmljs": "0.19.5",
 		"listr": "0.14.3",
-		"prettify-xml": "1.2.0"
+		"prettify-xml": "1.2.0",
+		"winston": "3.2.1"
 	},
 	"devDependencies": {
 		"@oclif/dev-cli": "1.22.2",
@@ -29,8 +30,7 @@
 		"globby": "10.0.1",
 		"mocha": "5.2.0",
 		"nyc": "13.3.0",
-		"rimraf": "2.6.3",
-		"winston": "3.2.1"
+		"rimraf": "2.6.3"
 	},
 	"engines": {
 		"node": ">=8.0.0"
