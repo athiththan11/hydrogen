@@ -29,7 +29,7 @@ exports.configure = async function (ocli, product, opts) {
 	}
 
 	configureDatasource(ocli, args, product, 'oracle').then(() => {
-		if (opts.container)
+		if (product === 'is' && opts.container)
 			buildContainer(ocli, 'oracle', opts);
 	});
 };
