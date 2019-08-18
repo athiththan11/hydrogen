@@ -77,7 +77,6 @@ DatasourceISCommand.flags = {
 		hidden: false,
 		multiple: false,
 		required: false,
-		default: false,
 	}),
 	generate: flags.boolean({
 		char: 'g',
@@ -85,7 +84,6 @@ DatasourceISCommand.flags = {
 		hidden: false,
 		multiple: false,
 		required: false,
-		default: false,
 		dependsOn: ['container'],
 	}),
 	replace: flags.boolean({
