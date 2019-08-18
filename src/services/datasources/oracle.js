@@ -1,6 +1,7 @@
 const { configureDatasource } = require('./generic');
+const { buildContainer } = require('../docker/datasource/generic');
 
-exports.configure = async function (ocli, product) {
+exports.configure = async function (ocli, product, opts) {
 	let args = {
 		_connectionUrl: 'jdbc:oracle:thin:@localhost:1521/wso2oracle',
 		_defaultAutoCommit: 'false',
@@ -27,5 +28,8 @@ exports.configure = async function (ocli, product) {
 		args._name = 'WSO2AM_DB';
 	}
 
-	configureDatasource(ocli, args, product, 'oracle');
+	configureDatasource(ocli, args, product, 'oracle').then(() => {
+		if (opts.container)
+			buildContainer(ocli, 'oracle', opts);
+	});
 };
