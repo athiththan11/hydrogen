@@ -1,6 +1,7 @@
 const { configureDatasource } = require('./generic');
+const { buildContainer } = require('../docker/datasource/generic');
 
-exports.configure = async function (ocli, product) {
+exports.configure = async function (ocli, product, opts) {
 	let args = {
 		_connectionUrl: 'jdbc:mysql://localhost:3306/wso2mysql',
 		_defaultAutoCommit: 'false',
@@ -25,5 +26,9 @@ exports.configure = async function (ocli, product) {
 		args._name = 'WSO2AM_DB';
 	}
 
-	configureDatasource(ocli, args, product, 'mysql');
+	configureDatasource(ocli, args, product, 'mysql').then(() => {
+		if (opts.container) {
+			buildContainer(ocli, 'mysql', opts);
+		}
+	});
 };
