@@ -275,22 +275,22 @@ function buildDriverDoc(ocli, database) {
 	if (database === 'postgres') {
 		ocli.log('NOTE: Download the Postgres JDBC Driver and place it inside /repository/components/lib folder.');
 		cli.url('Postgres JDBC Driver', 'https://jdbc.postgresql.org/');
-		cli.open('https://jdbc.postgresql.org/').catch(error => {
-			logger.error(error);
-		});
+		// cli.open('https://jdbc.postgresql.org/').catch(error => {
+		// 	logger.error(error);
+		// });
 	}
 	if (database === 'mysql') {
 		ocli.log('NOTE: Download the MySQL JDBC Driver and place it inside /repository/components/lib folder.');
 		cli.url('MySQL JDBC Driver', 'https://www.mysql.com/products/connector/');
-		cli.open('https://www.mysql.com/products/connector/').catch(error => {
-			logger.error(error);
-		});
+		// cli.open('https://www.mysql.com/products/connector/').catch(error => {
+		// 	logger.error(error);
+		// });
 	}
 	if (database === 'oracle') {
 		ocli.log('NOTE: Download the Oracle JDBC Driver and place it inside /repository/components/lib folder.');
 		cli.url('Oracle JDBC Driver', 'https://www.oracle.com/technetwork/database/application-development/jdbc/downloads/index.html');
-		cli.open('https://www.oracle.com/technetwork/database/application-development/jdbc/downloads/index.html').catch(error => {
-			logger.error(error);
-		});
+		// cli.open('https://www.oracle.com/technetwork/database/application-development/jdbc/downloads/index.html').catch(error => {
+		// 	logger.error(error);
+		// });
 	}
 }
