@@ -73,7 +73,7 @@ exports.buildContainer = async function (ocli, database, opts) {
 // build postgres container
 async function buildPostgresContainer(ocli, opts) {
 	let instance = new Docker();
-	let chance = new Chance().animal().trim();
+	let chance = new Chance().animal().replace(' ', '');
 
 	instance.createContainer({
 		Image: _confs.postgres.image + ':' + _confs.postgres.tag,
@@ -96,7 +96,7 @@ A Docker container has been created for Postgres datasource : ${chance}`);
 // build mysql container
 async function buildMySQLContainer(ocli) {
 	let instance = new Docker();
-	let chance = new Chance().animal().trim();
+	let chance = new Chance().animal().replace(' ', '');
 
 	instance.createContainer({
 		Image: _confs.mysql.image + ':' + _confs.mysql.tag,
