@@ -1,6 +1,7 @@
 const fs = require('fs-extra');
 const libxmljs = require('libxmljs');
 const path = require('path');
+const { exec } = require('shelljs');
 const prettify = require('prettify-xml');
 const { cli } = require('cli-ux');
 const Table = require('cli-table');
@@ -568,6 +569,8 @@ async function configureDKManager(p, count) {
 		alterMDatasourceREG(p, args);
 	}).then(() => {
 		alterUserMgt(p);
+	}).then(() => {
+		execProfileOptimization(p, 'api-key-manager', { silent: true });
 	});
 }
 
@@ -755,6 +758,8 @@ async function configureDPub(p, count) {
 		alterMDatasourceREG(p, args);
 	}).then(() => {
 		alterUserMgt(p);
+	}).then(() => {
+		execProfileOptimization(p, 'api-publisher', { silent: true });
 	});
 }
 
@@ -927,6 +932,8 @@ async function configureDStore(p, count) {
 		alterMDatasourceREG(p, args);
 	}).then(() => {
 		alterUserMgt(p);
+	}).then(() => {
+		execProfileOptimization(p, 'api-store', { silent: true });
 	});
 }
 
@@ -961,6 +968,8 @@ async function configureDTManager(p, _count) {
 		fs.writeFileSync(path.join(p, pApiManager), prettify(_altered, { indent: 4 }) + '\n', _utf8);
 	}).then(() => {
 		configurePortOffset(p, _count);
+	}).then(() => {
+		execProfileOptimization(p, 'traffic-manager', { silent: true });
 	});
 }
 
@@ -1387,6 +1396,11 @@ function alterElement(element, tag, description) {
 		`${_t}<!-- ${_comment} ${description ? description : ''}-->\n${_t}` +
 		element.substring(element.lastIndexOf(`<${tag}>`), element.length);
 	return alter;
+}
+
+// execute profile optimization for distributed setup
+function execProfileOptimization(p, profile, opts) {
+	exec(`sh ${path.join(p, 'bin/profileSetup.sh')} -Dprofile=${profile}`, opts);
 }
 
 // comment elements
