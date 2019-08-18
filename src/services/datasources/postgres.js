@@ -1,6 +1,7 @@
 const { configureDatasource } = require('./generic');
+const { buildContainer } = require('../docker/datasource/generic');
 
-exports.configure = async function (ocli, product) {
+exports.configure = async function (ocli, product, opts) {
 	let args = {
 		_connectionUrl: 'jdbc:postgresql://localhost:5432/wso2postgres',
 		_defaultAutoCommit: 'true',
@@ -26,5 +27,9 @@ exports.configure = async function (ocli, product) {
 		args._name = 'WSO2AM_DB';
 	}
 
-	configureDatasource(ocli, args, product, 'postgres');
+	configureDatasource(ocli, args, product, 'postgres').then(() => {
+		if (opts.container) {
+			buildContainer(ocli, 'postgres', opts);
+		}
+	});
 };

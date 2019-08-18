@@ -10,17 +10,20 @@ class DatasourceISCommand extends Command {
 		const version = flags.version;
 		const datasource = flags.datasource;
 
+		const container = flags.container;
+		const generate = flags.generate;
+
 		const replace = flags.replace;
 
 		if (replace) {
 			this.log(`starting to alter wso2is-${version} with ${datasource} configurations`);
 
 			if (datasource === 'postgres')
-				await Postgres.configure(this, 'is');
+				await Postgres.configure(this, 'is', { container, generate });
 			if (datasource === 'mysql')
-				await MySQL.configure(this, 'is');
+				await MySQL.configure(this, 'is', { container, generate });
 			if (datasource === 'oracle') {
-				await Oracle.configure(this, 'is');
+				await Oracle.configure(this, 'is', { container, generate });
 			}
 		} else {
 			this._help();
@@ -67,6 +70,23 @@ DatasourceISCommand.flags = {
 		multiple: false,
 		required: true,
 		options: ['postgres', 'mysql', 'oracle'],
+	}),
+	container: flags.boolean({
+		char: 'c',
+		description: 'create docker container for datasource',
+		hidden: false,
+		multiple: false,
+		required: false,
+		default: false,
+	}),
+	generate: flags.boolean({
+		char: 'g',
+		description: 'generate database and tables in run-time created container',
+		hidden: false,
+		multiple: false,
+		required: false,
+		default: false,
+		dependsOn: ['container'],
 	}),
 	replace: flags.boolean({
 		char: 'R',
