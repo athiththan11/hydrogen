@@ -1,6 +1,6 @@
 const { Command, flags } = require('@oclif/command');
 
-const Generic = require('../../services/distributed/generic');
+const Generic = require('../../services/distribute/generic');
 
 class DistributeAMCommand extends Command {
 	async run() {
@@ -8,16 +8,18 @@ class DistributeAMCommand extends Command {
 		const version = flags.version;
 		const datasource = flags.datasource;
 
+		let message = `starting to configure apim-${version} ${datasource ? 'with ' + datasource + ' ' : ''}`;
+
 		if (flags['multiple-gateway']) {
-			this.log(`starting to configure apim-${version} ${datasource ? 'with ' + datasource + ' ' : ''}for multiple gateway setup`);
+			this.log(`${message}for multiple gateway setup`);
 			await Generic.configure(this, { 'multiple-gateway': true });
 		}
 		if (flags.distributed) {
-			this.log(`starting to configure apim-${version} ${datasource ? 'with ' + datasource + ' ' : ''}for distributed setup`);
+			this.log(`${message}for distributed setup`);
 			await Generic.configure(this, { distributed: true });
 		}
 		if (flags['is-km']) {
-			this.log(`starting to configure apim-${version} ${datasource ? 'with ' + datasource + ' ' : ''}with IS as Keymanager`);
+			this.log(`${message}with IS as Keymanager`);
 			await Generic.configure(this, { 'is-km': true });
 		}
 
@@ -44,15 +46,6 @@ $ hydrogen distribute:am -M -v 2.6 -d postgres`,
 ];
 
 DistributeAMCommand.flags = {
-	version: flags.string({
-		char: 'v',
-		description: 'product version',
-		hidden: true,
-		multiple: false,
-		required: true,
-		default: '2.6',
-		options: ['2.6'],
-	}),
 	datasource: flags.string({
 		char: 'd',
 		description: 'datasource type',
@@ -60,14 +53,6 @@ DistributeAMCommand.flags = {
 		multiple: false,
 		required: false,
 		options: ['postgres', 'mysql', 'oracle'],
-	}),
-	'multiple-gateway': flags.boolean({
-		char: 'M',
-		description: 'publish through multiple gateway',
-		hidden: false,
-		multiple: false,
-		required: false,
-		exclusive: ['distributed', 'is-km'],
 	}),
 	distributed: flags.boolean({
 		char: 'D',
@@ -84,6 +69,23 @@ DistributeAMCommand.flags = {
 		multiple: false,
 		required: false,
 		exclusive: ['multiple-gateway', 'distributed'],
+	}),
+	'multiple-gateway': flags.boolean({
+		char: 'M',
+		description: 'publish through multiple gateway',
+		hidden: false,
+		multiple: false,
+		required: false,
+		exclusive: ['distributed', 'is-km'],
+	}),
+	version: flags.string({
+		char: 'v',
+		description: 'product version',
+		hidden: true,
+		multiple: false,
+		required: true,
+		default: '2.6',
+		options: ['2.6'],
 	}),
 };
 

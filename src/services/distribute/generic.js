@@ -1,12 +1,11 @@
 const fs = require('fs-extra');
 const libxmljs = require('libxmljs');
 const path = require('path');
-const { exec } = require('shelljs');
 const prettify = require('prettify-xml');
-const { cli } = require('cli-ux');
 const Table = require('cli-table');
 
-const { logger } = require('../../utils/logger');
+const { exec } = require('shelljs');
+const { cli } = require('cli-ux');
 const { parseXML, removeDeclaration } = require('../../utils/utility');
 
 let pApiManager = '/repository/conf/api-manager.xml';
@@ -62,23 +61,20 @@ exports.configure = async function (ocli, args) {
 	cli.log('\n');
 
 	// #region test environments
-	if (process.env.NODE_ENV === 'mocha' && args['multiple-gateway']) {
-		_p = path.join(process.cwd(), process.env.MOCHA_MULTIPLE_GATEWAY);
-	}
-	if (process.env.NODE_ENV === 'mocha' && args.distributed) {
+	if (process.env.NODE_ENV === 'mocha' && args.distributed)
 		_p = path.join(process.cwd(), process.env.MOCHA_DISTRIBUTED);
-	}
-	if (process.env.NODE_ENV === 'mocha' && args['is-km']) {
+	if (process.env.NODE_ENV === 'mocha' && args['is-km'])
 		_p = path.join(process.cwd(), process.env.MOCHA_ISKM);
-	}
+	if (process.env.NODE_ENV === 'mocha' && args['multiple-gateway'])
+		_p = path.join(process.cwd(), process.env.MOCHA_MULTIPLE_GATEWAY);
 	// #endregion
 
-	if (args['multiple-gateway'])
-		await configureMultipleGateway(ocli);
 	if (args.distributed)
 		await configureDistributedDeployment(ocli);
 	if (args['is-km'])
 		await configureISasKM(ocli);
+	if (args['multiple-gateway'])
+		await configureMultipleGateway(ocli);
 };
 
 // #region publish multiple gateway configurations
