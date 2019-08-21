@@ -14,7 +14,7 @@ DatasoureCommand.description = `Alter datasources of WSO2 products (fresh-pack) 
 ...
 Alter datasource configurations of WSO2 products based on your preference.
 
-List all available distribute commands using
+List all available datasource commands using
 $ hydrogen datasource --help
 `;
 

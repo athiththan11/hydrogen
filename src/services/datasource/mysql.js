@@ -3,7 +3,7 @@ const { buildContainer } = require('../docker/datasource/generic');
 
 exports.configure = async function (ocli, product, opts) {
 	let args = {
-		_connectionUrl: 'jdbc:mysql://localhost:3306/wso2mysql',
+		_connectionUrl: 'jdbc:mysql://localhost:3306/wso2mysql?autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true',
 		_defaultAutoCommit: 'false',
 		_description: 'The datasource used for registry and user manager',
 		_driver: 'com.mysql.jdbc.Driver',
@@ -20,7 +20,7 @@ exports.configure = async function (ocli, product, opts) {
 	};
 
 	if (product === 'am') {
-		args._connectionUrl = 'jdbc:mysql://localhost:3306/wso2amdb';
+		args._connectionUrl = 'jdbc:mysql://localhost:3306/wso2amdb?autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true';
 		args._description = 'The datasource used for API Manager database';
 		args._jndiName = 'jdbc/WSO2AM_DB';
 		args._name = 'WSO2AM_DB';

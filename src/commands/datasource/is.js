@@ -1,8 +1,8 @@
 const { Command, flags } = require('@oclif/command');
 
-const Postgres = require('../../services/datasources/postgres');
-const MySQL = require('../../services/datasources/mysql');
-const Oracle = require('../../services/datasources/oracle');
+const MySQL = require('../../services/datasource/mysql');
+const Oracle = require('../../services/datasource/oracle');
+const Postgres = require('../../services/datasource/postgres');
 
 class DatasourceISCommand extends Command {
 	async run() {
@@ -47,21 +47,17 @@ use --replace (-R) and pass supported datasource with --datasource flag (--datas
 DatasourceISCommand.examples = [
 	`Replace H2 with Postgres
 $ hydrogen datasource:is -R -v 5.7 -d postgres`,
-	`Replace H2 with MySQL
-$ hydrogen datasource:is -R -v 5.7 -d mysql`,
-	`Replace H2 with Oracle
-$ hydrogen datasource:is -R -v 5.7 -d oracle`,
+	`Replace H2 with Postgres and generate a container for database
+$ hydrogen datasource:is -R -v 5.7 -d postgres --container --generate`,
 ];
 
 DatasourceISCommand.flags = {
-	version: flags.string({
-		char: 'v',
-		description: 'product version. supported versions are [is >= 5.7]',
+	container: flags.boolean({
+		char: 'c',
+		description: 'create docker container for datasource',
 		hidden: false,
 		multiple: false,
-		required: true,
-		default: '5.7',
-		options: ['5.7'],
+		required: false,
 	}),
 	datasource: flags.string({
 		char: 'd',
@@ -70,13 +66,6 @@ DatasourceISCommand.flags = {
 		multiple: false,
 		required: true,
 		options: ['postgres', 'mysql', 'oracle'],
-	}),
-	container: flags.boolean({
-		char: 'c',
-		description: 'create docker container for datasource',
-		hidden: false,
-		multiple: false,
-		required: false,
 	}),
 	generate: flags.boolean({
 		char: 'g',
@@ -91,6 +80,15 @@ DatasourceISCommand.flags = {
 		description: 'replace h2 datasource',
 		hidden: false,
 		multiple: false,
+	}),
+	version: flags.string({
+		char: 'v',
+		description: 'wso2is product version',
+		hidden: false,
+		multiple: false,
+		required: true,
+		default: '5.7',
+		options: ['5.7'],
 	}),
 };
 

@@ -1,9 +1,8 @@
 const { Command, flags } = require('@oclif/command');
-const { logger } = require('../../utils/logger');
 
-const Postgres = require('../../services/datasources/postgres');
-const MySQL = require('../../services/datasources/mysql');
-const Oracle = require('../../services/datasources/oracle');
+const MySQL = require('../../services/datasource/mysql');
+const Oracle = require('../../services/datasource/oracle');
+const Postgres = require('../../services/datasource/postgres');
 
 class DatasourceAPIMCommand extends Command {
 	async run() {
@@ -44,22 +43,9 @@ use --replace (-R) and pass supported datasource with --datasource flag (--datas
 DatasourceAPIMCommand.examples = [
 	`Replace H2 with Postgres
 $ hydrogen datasource:am -R -v 2.6 -d postgres`,
-	`Replace H2 with MySQL
-$ hydrogen datasource:am -R -v 2.6 -d mysql`,
-	`Replace H2 with Oracle
-$ hydrogen datasource:am -R -v 2.6 -d oracle`,
 ];
 
 DatasourceAPIMCommand.flags = {
-	version: flags.string({
-		char: 'v',
-		description: 'product version. supported versions are [apim >= 2.6]',
-		hidden: false,
-		multiple: false,
-		required: true,
-		default: '2.6',
-		options: ['2.6'],
-	}),
 	datasource: flags.string({
 		char: 'd',
 		description: 'datasource type',
@@ -73,6 +59,15 @@ DatasourceAPIMCommand.flags = {
 		description: 'replace h2 datasource',
 		hidden: false,
 		multiple: false,
+	}),
+	version: flags.string({
+		char: 'v',
+		description: 'wso2am product version',
+		hidden: false,
+		multiple: false,
+		required: true,
+		default: '2.6',
+		options: ['2.6'],
 	}),
 };
 
