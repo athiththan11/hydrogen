@@ -26,6 +26,20 @@ A command line tool to alter and configure fresh packs of WSO2 products for diff
 * Configure API manager for distributed deployment
 * Configure API manager and IS as Keymanager
 
+& more on the way. Check [TODO](#todo) & Get me to the [Examples](#examples).
+
+## Install & Run
+
+> You don't need to install NodeJS to use the `hydrogen`, since the packages and dependencies are compressed and provided as `tar` objects. If in need to rebuild and use the `hydrogen`, then the recomended versions of NodeJS are `v8.9`, `v10` and `v11`.
+
+Download the `tar` file according to your environment from [here](https://github.com/athiththan11/hydrogen/releases). Extract and place it in your favourite location and set the `$PATH` variable to point the `/bin` folder of `hydrogen`.
+
+To verify, fire up a terminal and execute the following command
+
+```shell
+hydrogen --version
+```
+
 ## Commands
 
 Below listed are the available commands and descriptions of `hydrogen`.
@@ -205,6 +219,9 @@ For usages and examples, navigate to [here](#distribute-examples).
 	```
 
 * Need to configure WSO2 IS v5.7 with `Postgres` by replacing the default shipped H2 Carbon database and also to generate a Docker container with databases
+  
+  **NOTE** : Docker images are not pulled from the DockerHub (as of now in beta version & will be added as enhancement in near future). Prior to execute the command pull the Postgres:9.6.14 image from DockerHub
+
   * Download and extract a fresh pack of WSO2 IS v5.7
   * Start the Docker service in your environment (if you don't have Docker intalled, install Docker before executing the command to work without any errors)
   * Open a terminal and navigate to the root of the extracted WSO2 IS pack
