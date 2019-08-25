@@ -266,3 +266,7 @@ For usages and examples, navigate to [here](#distribute-examples).
   - [ ] support other deployment patterns
 
 & more...
+
+### License
+
+[MIT](https://github.com/athiththan11/hydrogen/blob/master/LICENSE)
