@@ -13,6 +13,7 @@ let pAxis2 = '/repository/conf/axis2/axis2.xml';
 let pAxis2TM = '/repository/conf/axis2/axis2_TM.xml';
 let pCarbon = '/repository/conf/carbon.xml';
 let pIdentity = '/repository/conf/identity/identity.xml';
+let pJNDIProperties = '/repository/conf/jndi.properties';
 let pMasterDatasource = '/repository/conf/datasources/master-datasources.xml';
 let pRegistry = '/repository/conf/registry.xml';
 let pRegistryTM = '/repository/conf/registry_TM.xml';
@@ -40,7 +41,7 @@ let _c = {
 let _comment = 'HYDROGENERATED:';
 let _distributed = 'distributed';
 let _n = '\n\n';
-let _p = process.cwd();
+let p = process.cwd();
 let _t = '\t\t';
 let _utf8 = 'utf8';
 
@@ -62,11 +63,11 @@ exports.configure = async function (ocli, args) {
 
 	// #region test environments
 	if (process.env.NODE_ENV === 'mocha' && args.distributed)
-		_p = path.join(process.cwd(), process.env.MOCHA_DISTRIBUTED);
+		p = path.join(process.cwd(), process.env.MOCHA_DISTRIBUTED);
 	if (process.env.NODE_ENV === 'mocha' && args['is-km'])
-		_p = path.join(process.cwd(), process.env.MOCHA_ISKM);
+		p = path.join(process.cwd(), process.env.MOCHA_ISKM);
 	if (process.env.NODE_ENV === 'mocha' && args['multiple-gateway'])
-		_p = path.join(process.cwd(), process.env.MOCHA_MULTIPLE_GATEWAY);
+		p = path.join(process.cwd(), process.env.MOCHA_MULTIPLE_GATEWAY);
 	// #endregion
 
 	if (args.distributed)
@@ -81,18 +82,18 @@ exports.configure = async function (ocli, args) {
 
 async function configureMultipleGateway(ocli) {
 	// clean .DS_Store in mac filesystem
-	if (fs.existsSync(path.join(_p, '.DS_Store'))) {
-		fs.removeSync(path.join(_p, '.DS_Store'));
+	if (fs.existsSync(path.join(p, '.DS_Store'))) {
+		fs.removeSync(path.join(p, '.DS_Store'));
 	}
 
-	let sync = fs.readdirSync(_p);
+	let sync = fs.readdirSync(p);
 	if (sync.length === 1 && sync[0].startsWith('wso2')) {
-		let pDistributed = path.join(_p, _distributed);
+		let pDistributed = path.join(p, _distributed);
 
 		// create distributed folder
 		fs.mkdirSync(pDistributed);
 
-		let source = path.join(_p, sync[0]);
+		let source = path.join(p, sync[0]);
 		let _count = 0;
 
 		traverseMultipleGateway(ocli, sync[0], source, pDistributed, _count);
@@ -299,18 +300,18 @@ function buildMGWDoc(ocli) {
 
 async function configureDistributedDeployment(ocli) {
 	// clean .DS_Store in mac filesystem
-	if (fs.existsSync(path.join(_p, '.DS_Store'))) {
-		fs.removeSync(path.join(_p, '.DS_Store'));
+	if (fs.existsSync(path.join(p, '.DS_Store'))) {
+		fs.removeSync(path.join(p, '.DS_Store'));
 	}
 
-	let sync = fs.readdirSync(_p);
+	let sync = fs.readdirSync(p);
 	if (sync.length === 1 && sync[0].startsWith('wso2')) {
-		let pDistributed = path.join(_p, _distributed);
+		let pDistributed = path.join(p, _distributed);
 
 		// create distributed folder
 		fs.mkdirSync(pDistributed);
 
-		let source = path.join(_p, sync[0]);
+		let source = path.join(p, sync[0]);
 		let _count = 0;
 
 		traverseDistributedDeployment(ocli, sync[0], source, pDistributed, _count);
@@ -755,6 +756,8 @@ async function configureDPub(p, count) {
 	}).then(() => {
 		alterUserMgt(p);
 	}).then(() => {
+		alterJNDIProps(p);
+	}).then(() => {
 		execProfileOptimization(p, 'api-publisher', { silent: true });
 	});
 }
@@ -970,7 +973,7 @@ async function configureDTManager(p, _count) {
 }
 
 // alter user-mgt.xml
-async function alterUserMgt(p) {
+async function alterUserMgt(p, ldap2jdbc) {
 	await parseXML(null, path.join(p, pUserMgt)).then(usermgt => {
 		let doc = new libxmljs.Document(usermgt);
 		let propertyElement = new libxmljs.Element(doc, 'Property', 'jdbc/WSO2UM_DB')
@@ -993,13 +996,57 @@ async function alterUserMgt(p) {
 			.get('//*[local-name()="Realm"]/*[local-name()="Configuration"]/*[local-name()="Property"][@name="dataSource"]')
 			.addPrevSibling(commentElement);
 
+		if (ldap2jdbc) {
+			let jdbcElement = buildJDBCUserStore(doc);
+
+			let ldapElement = usermgt.root()
+				.get('//*[local-name()="Realm"]/*[local-name()="UserStoreManager"][@class="org.wso2.carbon.user.core.ldap.ReadWriteLDAPUserStoreManager"]');
+
+			commentElement = new libxmljs.Comment(doc, ldapElement.toString());
+
+			usermgt.root()
+				.get('//*[local-name()="Realm"]/*[local-name()="UserStoreManager"][@class="org.wso2.carbon.user.core.ldap.ReadWriteLDAPUserStoreManager"]')
+				.addNextSibling(jdbcElement);
+
+			usermgt.root()
+				.get('//*[local-name()="Realm"]/*[local-name()="UserStoreManager"][@class="org.wso2.carbon.user.core.ldap.ReadWriteLDAPUserStoreManager"]')
+				.remove();
+
+			usermgt.root()
+				.get('//*[local-name()="Realm"]/*[local-name()="UserStoreManager"][@class="org.wso2.carbon.user.core.jdbc.JDBCUserStoreManager"]')
+				.addPrevSibling(commentElement);
+		}
+
 		let altered = usermgt.toString();
 
 		let _altered = altered.substring(0, altered.indexOf('<Property name="dataSource">jdbc/WSO2UM_DB')) +
 			`${_n}<!-- ${_comment} datasource changed -->\n` +
 			altered.substring(altered.indexOf('<Property name="dataSource">jdbc/WSO2UM_DB'), altered.length);
 
+		if (ldap2jdbc) {
+			_altered = _altered.substring(0, _altered.lastIndexOf('<UserStoreManager class="org.wso2.carbon.user.core.jdbc.JDBCUserStoreManager">')) +
+				`${_n}<!-- ${_comment} user store manager changed to jdbc -->\n` +
+				_altered.substring(_altered.lastIndexOf('<UserStoreManager class="org.wso2.carbon.user.core.jdbc.JDBCUserStoreManager">'));
+		}
+
 		fs.writeFileSync(path.join(p, pUserMgt), prettify(_altered, { indent: 4 }) + '\n', _utf8);
+	});
+}
+
+// alter jndi.properties
+async function alterJNDIProps(p) {
+	await fs.readFile(path.join(p, pJNDIProperties), _utf8).then(data => {
+		let altered = data;
+
+		let _altered = altered.substring(0, altered.indexOf('connectionfactory.TopicConnectionFactory')) +
+			'# ' +
+			altered.substring(altered.indexOf('connectionfactory.TopicConnectionFactory'), altered.indexOf('connectionfactory.QueueConnectionFactory')) +
+			`# ${_comment}
+connectionfactory.TopicConnectionFactory = amqp://admin:admin@clientid/carbon?brokerlist='tcp://localhost:${_p5672 + _trafficmanager}'
+` +
+			altered.substring(altered.indexOf('connectionfactory.QueueConnectionFactory'));
+
+		fs.writeFileSync(path.join(p, pJNDIProperties), _altered, _utf8);
 	});
 }
 
@@ -1081,8 +1128,8 @@ async function alterMDatasourceREG(p, args) {
 
 // build datasource elements
 function buildDatasource(doc, args) {
-	let genericElement = new libxmljs.Element(doc, 'datasource');
-	genericElement
+	let datasourceElement = new libxmljs.Element(doc, 'datasource');
+	datasourceElement
 		.node('name', args._name)
 		.parent()
 		.node('description', args._description)
@@ -1116,7 +1163,90 @@ function buildDatasource(doc, args) {
 		.parent()
 		.node('defaultAutoCommit', args._defaultAutoCommit);
 
-	return genericElement;
+	return datasourceElement;
+}
+
+// build jdbc user store elements
+function buildJDBCUserStore(doc) {
+	let jdbcElement = new libxmljs.Element(doc, 'UserStoreManager').attr(
+		{ class: 'org.wso2.carbon.user.core.jdbc.JDBCUserStoreManager' }
+	);
+	jdbcElement
+		.node(
+			'Property',
+			'org.wso2.carbon.user.core.tenant.JDBCTenantManager'
+		)
+		.attr({
+			name: 'TenantManager',
+		})
+		.parent()
+		.node('Property', 'false')
+		.attr({ name: 'ReadOnly' })
+		.parent()
+		.node('Property', 'true')
+		.attr({ name: 'ReadGroups' })
+		.parent()
+		.node('Property', 'true')
+		.attr({ name: 'WriteGroups' })
+		.parent()
+		.node('Property', '^[\\S]{3,30}$')
+		.attr({ name: 'UsernameJavaRegEx' })
+		.parent()
+		.node('Property', '^[\\S]{3,30}$')
+		.attr({ name: 'UsernameJavaScriptRegEx' })
+		.parent()
+		.node('Property', 'Username pattern policy violated')
+		.attr({ name: 'UsernameJavaRegExViolationErrorMsg' })
+		.parent()
+		.node('Property', '^[\\S]{5,30}$')
+		.attr({ name: 'PasswordJavaRegEx' })
+		.parent()
+		.node('Property', '^[\\S]{5,30}$')
+		.attr({ name: 'PasswordJavaScriptRegEx' })
+		.parent()
+		.node(
+			'Property',
+			'Password length should be within 5 to 30 characters'
+		)
+		.attr({ name: 'PasswordJavaRegExViolationErrorMsg' })
+		.parent()
+		.node('Property', '^[\\S]{3,30}$')
+		.attr({ name: 'RolenameJavaRegEx' })
+		.parent()
+		.node('Property', '^[\\S]{3,30}$')
+		.attr({ name: 'RolenameJavaScriptRegEx' })
+		.parent()
+		.node('Property', 'false')
+		.attr({ name: 'CaseInsensitiveUsername' })
+		.parent()
+		.node('Property', 'false')
+		.attr({ name: 'SCIMEnabled' })
+		.parent()
+		.node('Property', 'false')
+		.attr({ name: 'IsBulkImportSupported' })
+		.parent()
+		.node('Property', 'SHA-256')
+		.attr({ name: 'PasswordDigest' })
+		.parent()
+		.node('Property', 'true')
+		.attr({ name: 'StoreSaltedPassword' })
+		.parent()
+		.node('Property', ',')
+		.attr({ name: 'MultiAttributeSeparator' })
+		.parent()
+		.node('Property', '100')
+		.attr({ name: 'MaxUserNameListLength' })
+		.parent()
+		.node('Property', '100')
+		.attr({ name: 'MaxRoleNameListLength' })
+		.parent()
+		.node('Property', 'true')
+		.attr({ name: 'UserRolesCacheEnabled' })
+		.parent()
+		.node('Property', 'false')
+		.attr({ name: 'UserNameUniqueAcrossTenants' });
+
+	return jdbcElement;
 }
 
 // build docs and additional notes
@@ -1167,11 +1297,11 @@ Start the distributed nodes in the following order
 
 async function configureISasKM(ocli) {
 	// clean .DS_Store in mac filesystem
-	if (fs.existsSync(path.join(_p, '.DS_Store'))) {
-		fs.removeSync(path.join(_p, '.DS_Store'));
+	if (fs.existsSync(path.join(p, '.DS_Store'))) {
+		fs.removeSync(path.join(p, '.DS_Store'));
 	}
 
-	let sync = fs.readdirSync(_p);
+	let sync = fs.readdirSync(p);
 	if (sync.length === 2) {
 		let count = 0;
 		traverseISasKM(ocli, sync, count);
@@ -1183,14 +1313,14 @@ function traverseISasKM(ocli, sync, count) {
 		let pack = sync.shift();
 		cli.action.start(`configuring ${pack}`);
 		if (pack.startsWith('wso2am')) {
-			configureISKMAIO(path.join(_p, pack)).then(() => {
+			configureISKMAIO(path.join(p, pack)).then(() => {
 				cli.action.stop();
 			}).then(() => {
 				traverseISasKM(ocli, sync, ++count);
 			});
 		}
 		if (pack.startsWith('wso2is-km')) {
-			configureISKM(path.join(_p, pack)).then(() => {
+			configureISKM(path.join(p, pack)).then(() => {
 				cli.action.stop();
 			}).then(() => {
 				traverseISasKM(ocli, sync, ++count);
@@ -1263,7 +1393,16 @@ async function configureISKM(p) {
 
 		alterMDatasourceUM(p, args);
 	}).then(() => {
-		alterUserMgt(p);
+		args._connectionUrl = 'jdbc:mysql://localhost:3306/regdb?autoReconnect=true&useSSL=false';
+		args._description = 'The datasource used by the registry';
+		args._jndiName = 'jdbc/WSO2REG_DB';
+		args._name = 'WSO2REG_DB';
+
+		alterMDatasourceREG(p, args);
+	}).then(() => {
+		alterRegistry(p, args);
+	}).then(() => {
+		alterUserMgt(p, true);
 	});
 }
 
@@ -1346,8 +1485,85 @@ async function configureISKMAIO(p) {
 
 		alterMDatasourceUM(p, args);
 	}).then(() => {
+		args._connectionUrl = 'jdbc:mysql://localhost:3306/regdb?autoReconnect=true&useSSL=false';
+		args._description = 'The datasource used by the registry';
+		args._jndiName = 'jdbc/WSO2REG_DB';
+		args._name = 'WSO2REG_DB';
+
+		alterMDatasourceREG(p, args);
+	}).then(() => {
+		alterRegistry(p, args);
+	}).then(() => {
 		alterUserMgt(p);
 	});
+}
+
+// alter registry.xml configurations
+async function alterRegistry(p, args) {
+	await parseXML(null, path.join(p, pRegistry)).then(registry => {
+		let doc = new libxmljs.Document(registry);
+		let registryElems = buildRegistry(doc, args);
+
+		registry.root()
+			.get('//*[local-name()="dbConfig"][@name="wso2registry"]')
+			.addNextSibling(registryElems.shift());
+
+		registry.root()
+			.get('//*[local-name()="dbConfig"][2]')
+			.addNextSibling(registryElems.shift());
+
+		registry.root()
+			.get('//*[local-name()="remoteInstance"]')
+			.addNextSibling(registryElems.shift());
+
+		registry.root()
+			.get('//*[local-name()="mount"]')
+			.addNextSibling(registryElems.shift());
+
+		let altered = registry.toString();
+		altered = altered.replace('encoding="UTF-8"', 'encoding="ISO-8859-1"');
+
+		let _altered = altered.substring(0, altered.indexOf('<dbConfig name="govregistry">')) +
+			`${_n}<!-- ${_comment} registry mounted -->\n` +
+			altered.substring(altered.indexOf('<dbConfig name="govregistry">'));
+
+		fs.writeFileSync(path.join(p, pRegistry), prettify(_altered, { indent: 4 }) + '\n', _utf8);
+	});
+}
+
+// build registry elements
+function buildRegistry(doc, args) {
+	let dbConfig = new libxmljs.Element(doc, 'dbConfig').attr({ name: 'govregistry' });
+	dbConfig
+		.node('dataSource', args._jndiName);
+
+	let remoteInstance = new libxmljs.Element(doc, 'remoteInstance').attr({ url: 'https://localhost:9443/registry' });
+	remoteInstance
+		.node('id', 'gov')
+		.parent()
+		.node('cacheId', `${args._username}@${args._connectionUrl}`)
+		.parent()
+		.node('dbConfig', 'govregistry')
+		.parent()
+		.node('readOnly', 'false')
+		.parent()
+		.node('enableCache', 'true')
+		.parent()
+		.node('registryRoot', '/');
+
+	let mountGov = new libxmljs.Element(doc, 'mount').attr({ path: '/_system/governance', overwrite: 'true' });
+	mountGov
+		.node('instanceId', 'gov')
+		.parent()
+		.node('targetPath', '/_system/governance');
+
+	let mountConf = new libxmljs.Element(doc, 'mount').attr({ path: '/_system/config', overwrite: 'true' });
+	mountConf
+		.node('instanceId', 'gov')
+		.parent()
+		.node('targetPath', '/_system/config');
+
+	return [dbConfig, remoteInstance, mountGov, mountConf];
 }
 
 // build docs and additional notes

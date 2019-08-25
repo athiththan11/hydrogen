@@ -40,9 +40,9 @@ flag, and for multiple-gateway node, use --multiple-gateway (-M) flag.
 
 DistributeAMCommand.examples = [
 	`Configure APIM for 5 node distributed setup
-$ hydrogen distribute:am -D -v 2.6 -d postgres`,
+$ hydrogen distribute:am -D -v 2.6`,
 	`Configure APIM for publish through multiple-gateway setup
-$ hydrogen distribute:am -M -v 2.6 -d postgres`,
+$ hydrogen distribute:am -M -v 2.6`,
 ];
 
 DistributeAMCommand.flags = {
