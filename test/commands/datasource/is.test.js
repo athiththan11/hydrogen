@@ -140,11 +140,11 @@ describe('datasource:is', () => {
 
 	test.stdout()
 		.command(['datasource:is', '--replace', '--version', '5.7', '--datasource', 'postgres', '--container'])
-		.it('runs datasource:is --replace --version 5.7 --datasource oracle --container', ctx => {});
+		.it('runs datasource:is --replace --version 5.7 --datasource postgres --container', ctx => {});
 
 	test.stdout()
 		.command(['datasource:is', '--replace', '--version', '5.7', '--datasource', 'mysql', '--container'])
-		.it('runs datasource:is --replace --version 5.7 --datasource oracle --container', ctx => {});
+		.it('runs datasource:is --replace --version 5.7 --datasource mysql --container', ctx => {});
 
 	test.stdout()
 		.command(['datasource:is', '--replace', '--version', '5.7', '--datasource', 'oracle', '--container'])
@@ -154,11 +154,11 @@ describe('datasource:is', () => {
 
 	test.stdout()
 		.command(['datasource:is', '--replace', '--version', '5.7', '--datasource', 'postgres', '--container', '--generate'])
-		.it('runs datasource:is --replace --version 5.7 --datasource oracle --container --generate', ctx => {});
+		.it('runs datasource:is --replace --version 5.7 --datasource postgres --container --generate', ctx => {});
 
 	test.stdout()
 		.command(['datasource:is', '--replace', '--version', '5.7', '--datasource', 'mysql', '--container', '--generate'])
-		.it('runs datasource:is --replace --version 5.7 --datasource oracle --container --generate', ctx => {});
+		.it('runs datasource:is --replace --version 5.7 --datasource mysql --container --generate', ctx => {});
 
 	test.stdout()
 		.command(['datasource:is', '--replace', '--version', '5.7', '--datasource', 'oracle', '--container', '--generate'])
