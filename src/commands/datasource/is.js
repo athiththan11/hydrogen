@@ -22,9 +22,8 @@ class DatasourceISCommand extends Command {
 				await Postgres.configure(this, 'is', { container, generate });
 			if (datasource === 'mysql')
 				await MySQL.configure(this, 'is', { container, generate });
-			if (datasource === 'oracle') {
+			if (datasource === 'oracle')
 				await Oracle.configure(this, 'is', { container, generate });
-			}
 		} else {
 			this._help();
 		}
