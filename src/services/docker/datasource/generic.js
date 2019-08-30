@@ -66,49 +66,74 @@ exports.buildContainer = async function (ocli, database, opts) {
 		await buildPostgresContainer(ocli, opts);
 	}
 	if (database === 'mysql') {
-		await buildMySQLContainer(ocli);
+		await buildMySQLContainer(ocli, opts);
 	}
 };
 
 // build postgres container
 async function buildPostgresContainer(ocli, opts) {
 	let instance = new Docker();
-	let chance = new Chance().animal().replace(' ', '');
+	let chance = new Chance().animal().replace(/[^a-zA-Z]/g, '');
 
-	instance.createContainer({
-		Image: _confs.postgres.image + ':' + _confs.postgres.tag,
-		name: chance,
-		Env: _confs.postgres.envs,
-		ExposedPorts: _confs.postgres.ports,
-		HostConfig: _confs.postgres.host,
-	}).then(container => {
-		ocli.log(`
+	instance.pull(`${_confs.postgres.image}:${_confs.postgres.tag}`, (err, stream) => {
+		if (!err)
+			instance.modem.followProgress(stream, onFinished, onProgress);
+
+		function onFinished(err, output) {
+			if (!err) {
+				cli.action.stop();
+				instance.createContainer({
+					Image: _confs.postgres.image + ':' + _confs.postgres.tag,
+					name: chance,
+					Env: _confs.postgres.envs,
+					ExposedPorts: _confs.postgres.ports,
+					HostConfig: _confs.postgres.host,
+				}).then(container => {
+					ocli.log(`
 A Docker container has been created for Postgres datasource : ${chance}`);
-		container.start().then(() => {
-			if (opts.generate) {
-				cli.action.start('executing database scripts');
-				executePostgresScripts(ocli);
+					container.start().then(() => {
+						if (opts.generate) {
+							cli.action.start('executing database scripts');
+							executePostgresScripts(ocli);
+						}
+					});
+				});
 			}
-		});
+		}
+		function onProgress(event) {
+			cli.action.start('pulling docker image');
+		}
 	});
 }
 
 // build mysql container
-async function buildMySQLContainer(ocli) {
+async function buildMySQLContainer(ocli, opts) {
 	let instance = new Docker();
-	let chance = new Chance().animal().replace(' ', '');
+	let chance = new Chance().animal().replace(/[^a-zA-Z]/g, '');
 
-	instance.createContainer({
-		Image: _confs.mysql.image + ':' + _confs.mysql.tag,
-		name: chance,
-		Env: _confs.mysql.envs,
-		ExposedPorts: _confs.mysql.ports,
-		HostConfig: _confs.mysql.host,
-	}).then(container => {
-		ocli.log(`
-A Docker container has been created for Postgres datasource : ${chance}
-`);
-		return container.start();
+	instance.pull(`${_confs.mysql.image}:${_confs.mysql.tag}`, (err, stream) => {
+		if (!err)
+			instance.modem.followProgress(stream, onFinished, onProgress);
+
+		function onFinished(err, output) {
+			if (!err) {
+				cli.action.stop();
+				instance.createContainer({
+					Image: _confs.mysql.image + ':' + _confs.mysql.tag,
+					name: chance,
+					Env: _confs.mysql.envs,
+					ExposedPorts: _confs.mysql.ports,
+					HostConfig: _confs.mysql.host,
+				}).then(container => {
+					ocli.log(`
+A Docker container has been created for MySQL datasource : ${chance}`);
+					return container.start();
+				});
+			}
+		}
+		function onProgress(event) {
+			cli.action.start('pulling docker image');
+		}
 	});
 }
 
