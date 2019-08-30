@@ -1,26 +1,27 @@
 const { Command, flags } = require('@oclif/command');
 
-const Generic = require('../../services/distribute/generic');
+const { configure } = require('../../services/distribute/generic');
 
 class DistributeAMCommand extends Command {
 	async run() {
 		const { flags } = this.parse(DistributeAMCommand);
 		const version = flags.version;
-		const datasource = flags.datasource;
+		// const datasource = flags.datasource;
 
-		let message = `starting to configure apim-${version} ${datasource ? 'with ' + datasource + ' ' : ''}`;
+		// let message = `starting to configure apim-${version} ${datasource ? 'with ' + datasource + ' ' : ''}`;
+		let message = `starting to configure apim-${version} `;
 
 		if (flags['multiple-gateway']) {
 			this.log(`${message}for multiple gateway setup`);
-			await Generic.configure(this, { 'multiple-gateway': true });
+			await configure(this, { 'multiple-gateway': true });
 		}
 		if (flags.distributed) {
 			this.log(`${message}for distributed setup`);
-			await Generic.configure(this, { distributed: true });
+			await configure(this, { distributed: true });
 		}
 		if (flags['is-km']) {
 			this.log(`${message}with IS as Keymanager`);
-			await Generic.configure(this, { 'is-km': true });
+			await configure(this, { 'is-km': true });
 		}
 
 		if (!flags['multiple-gateway'] && !flags.distributed && !flags['is-km']) {

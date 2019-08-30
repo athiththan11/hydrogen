@@ -6,7 +6,7 @@ const Table = require('cli-table');
 
 const { exec } = require('shelljs');
 const { cli } = require('cli-ux');
-const { parseXML, removeDeclaration } = require('../../utils/utility');
+const { commentElement, alterElement, parseXML, removeDeclaration } = require('../../utils/utility');
 
 let pApiManager = '/repository/conf/api-manager.xml';
 let pAxis2 = '/repository/conf/axis2/axis2.xml';
@@ -41,7 +41,7 @@ let _c = {
 let _comment = 'HYDROGENERATED:';
 let _distributed = 'distributed';
 let _n = '\n\n';
-let p = process.cwd();
+let _p = process.cwd();
 let _t = '\t\t';
 let _utf8 = 'utf8';
 
@@ -63,11 +63,11 @@ exports.configure = async function (ocli, args) {
 
 	// #region test environments
 	if (process.env.NODE_ENV === 'mocha' && args.distributed)
-		p = path.join(process.cwd(), process.env.MOCHA_DISTRIBUTED);
+		_p = path.join(process.cwd(), process.env.MOCHA_DISTRIBUTED);
 	if (process.env.NODE_ENV === 'mocha' && args['is-km'])
-		p = path.join(process.cwd(), process.env.MOCHA_ISKM);
+		_p = path.join(process.cwd(), process.env.MOCHA_ISKM);
 	if (process.env.NODE_ENV === 'mocha' && args['multiple-gateway'])
-		p = path.join(process.cwd(), process.env.MOCHA_MULTIPLE_GATEWAY);
+		_p = path.join(process.cwd(), process.env.MOCHA_MULTIPLE_GATEWAY);
 	// #endregion
 
 	if (args.distributed)
@@ -82,18 +82,18 @@ exports.configure = async function (ocli, args) {
 
 async function configureMultipleGateway(ocli) {
 	// clean .DS_Store in mac filesystem
-	if (fs.existsSync(path.join(p, '.DS_Store'))) {
-		fs.removeSync(path.join(p, '.DS_Store'));
+	if (fs.existsSync(path.join(_p, '.DS_Store'))) {
+		fs.removeSync(path.join(_p, '.DS_Store'));
 	}
 
-	let sync = fs.readdirSync(p);
+	let sync = fs.readdirSync(_p);
 	if (sync.length === 1 && sync[0].startsWith('wso2')) {
-		let pDistributed = path.join(p, _distributed);
+		let pDistributed = path.join(_p, _distributed);
 
 		// create distributed folder
 		fs.mkdirSync(pDistributed);
 
-		let source = path.join(p, sync[0]);
+		let source = path.join(_p, sync[0]);
 		let _count = 0;
 
 		traverseMultipleGateway(ocli, sync[0], source, pDistributed, _count);
@@ -300,18 +300,18 @@ function buildMGWDoc(ocli) {
 
 async function configureDistributedDeployment(ocli) {
 	// clean .DS_Store in mac filesystem
-	if (fs.existsSync(path.join(p, '.DS_Store'))) {
-		fs.removeSync(path.join(p, '.DS_Store'));
+	if (fs.existsSync(path.join(_p, '.DS_Store'))) {
+		fs.removeSync(path.join(_p, '.DS_Store'));
 	}
 
-	let sync = fs.readdirSync(p);
+	let sync = fs.readdirSync(_p);
 	if (sync.length === 1 && sync[0].startsWith('wso2')) {
-		let pDistributed = path.join(p, _distributed);
+		let pDistributed = path.join(_p, _distributed);
 
 		// create distributed folder
 		fs.mkdirSync(pDistributed);
 
-		let source = path.join(p, sync[0]);
+		let source = path.join(_p, sync[0]);
 		let _count = 0;
 
 		traverseDistributedDeployment(ocli, sync[0], source, pDistributed, _count);
@@ -1297,11 +1297,11 @@ Start the distributed nodes in the following order
 
 async function configureISasKM(ocli) {
 	// clean .DS_Store in mac filesystem
-	if (fs.existsSync(path.join(p, '.DS_Store'))) {
-		fs.removeSync(path.join(p, '.DS_Store'));
+	if (fs.existsSync(path.join(_p, '.DS_Store'))) {
+		fs.removeSync(path.join(_p, '.DS_Store'));
 	}
 
-	let sync = fs.readdirSync(p);
+	let sync = fs.readdirSync(_p);
 	if (sync.length === 2) {
 		let count = 0;
 		traverseISasKM(ocli, sync, count);
@@ -1313,14 +1313,14 @@ function traverseISasKM(ocli, sync, count) {
 		let pack = sync.shift();
 		cli.action.start(`configuring ${pack}`);
 		if (pack.startsWith('wso2am')) {
-			configureISKMAIO(path.join(p, pack)).then(() => {
+			configureISKMAIO(path.join(_p, pack)).then(() => {
 				cli.action.stop();
 			}).then(() => {
 				traverseISasKM(ocli, sync, ++count);
 			});
 		}
 		if (pack.startsWith('wso2is-km')) {
-			configureISKM(path.join(p, pack)).then(() => {
+			configureISKM(path.join(_p, pack)).then(() => {
 				cli.action.stop();
 			}).then(() => {
 				traverseISasKM(ocli, sync, ++count);
@@ -1601,23 +1601,9 @@ Start the configured nodes in the following order
 
 // #endregion
 
-// alter element
-function alterElement(element, tag, description) {
-	let alter = element.substring(0, element.indexOf(`<${tag}>`)) +
-		commentElement(element.substring(element.indexOf(`<${tag}>`), element.lastIndexOf(`<${tag}>`))) +
-		`${_t}<!-- ${_comment} ${description ? description : ''}-->\n${_t}` +
-		element.substring(element.lastIndexOf(`<${tag}>`), element.length);
-	return alter;
-}
-
 // execute profile optimization for distributed setup
 function execProfileOptimization(p, profile, opts) {
 	exec(`sh ${path.join(p, 'bin/profileSetup.sh')} -Dprofile=${profile}`, opts);
-}
-
-// comment elements
-function commentElement(element) {
-	return '<!-- ' + element + ` -->${_n}`;
 }
 
 // configure port offset
