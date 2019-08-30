@@ -230,6 +230,12 @@ const distributed = [
 </wso2registry>
 `,
 									},
+									{
+										type: fsify.FILE,
+										name: 'jndi.properties',
+										contents: `connectionfactory.TopicConnectionFactory = amqp://admin:admin@clientid/carbon?brokerlist='tcp://localhost:5672'
+connectionfactory.QueueConnectionFactory = amqp://admin:admin@clientID/test?brokerlist='tcp://localhost:5672'`,
+									},
 								],
 							},
 						],
@@ -631,9 +637,28 @@ const isKM = [
     <Realm>
         <Configuration>
             <Property name="dataSource">jdbc/WSO2CarbonDB</Property>
-        </Configuration>
+		</Configuration>
+		<UserStoreManager class="org.wso2.carbon.user.core.jdbc.JDBCUserStoreManager">
+		</UserStoreManager>
+		<UserStoreManager class="org.wso2.carbon.user.core.ldap.ReadWriteLDAPUserStoreManager">
+		</UserStoreManager>
     </Realm>
 </UserManager>`,
+									},
+									{
+										type: fsify.FILE,
+										name: 'registry.xml',
+										contents: `<?xml version="1.0" encoding="ISO-8859-1"?>
+<wso2registry>
+	<currentDBConfig>wso2registry</currentDBConfig>
+	<readOnly>false</readOnly>
+	<enableCache>true</enableCache>
+	<registryRoot>/</registryRoot>
+	<dbConfig name="wso2registry">
+		<dataSource>jdbc/WSO2CarbonDB</dataSource>
+	</dbConfig>
+</wso2registry>
+`,
 									},
 								],
 							},
@@ -801,7 +826,11 @@ const isKM = [
     <Realm>
         <Configuration>
             <Property name="dataSource">jdbc/WSO2CarbonDB</Property>
-        </Configuration>
+		</Configuration>
+		<UserStoreManager class="org.wso2.carbon.user.core.jdbc.JDBCUserStoreManager">
+		</UserStoreManager>
+		<UserStoreManager class="org.wso2.carbon.user.core.ldap.ReadWriteLDAPUserStoreManager">
+		</UserStoreManager>
     </Realm>
 </UserManager>`,
 									},
@@ -814,6 +843,21 @@ const isKM = [
         <Offset>0</Offset>
     </Ports>
 </Server>
+`,
+									},
+									{
+										type: fsify.FILE,
+										name: 'registry.xml',
+										contents: `<?xml version="1.0" encoding="ISO-8859-1"?>
+<wso2registry>
+	<currentDBConfig>wso2registry</currentDBConfig>
+	<readOnly>false</readOnly>
+	<enableCache>true</enableCache>
+	<registryRoot>/</registryRoot>
+	<dbConfig name="wso2registry">
+		<dataSource>jdbc/WSO2CarbonDB</dataSource>
+	</dbConfig>
+</wso2registry>
 `,
 									},
 								],
