@@ -1,6 +1,8 @@
 const { configureDatasource } = require('./generic');
 const { buildContainer } = require('../docker/datasource/generic');
 
+const { logger } = require('../../utils/logger');
+
 exports.configure = async function (ocli, product, opts) {
 	let args = {
 		_connectionUrl: 'jdbc:mysql://localhost:3306/wso2mysql?autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true',
@@ -28,7 +30,11 @@ exports.configure = async function (ocli, product, opts) {
 
 	configureDatasource(ocli, args, product, 'mysql').then(() => {
 		if (product === 'is' && opts.container) {
-			buildContainer(ocli, 'mysql', opts);
+			buildContainer(ocli, 'mysql', opts).catch(error => {
+				if (error) logger.error('Something went wrong while building container for mysql\n' + error);
+			});
 		}
+	}).catch(error => {
+		if (error) logger.error(error);
 	});
 };

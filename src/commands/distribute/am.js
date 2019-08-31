@@ -1,6 +1,7 @@
 const { Command, flags } = require('@oclif/command');
 
 const { configure } = require('../../services/distribute/generic');
+const { logger } = require('../../utils/logger');
 
 class DistributeAMCommand extends Command {
 	async run() {
@@ -13,15 +14,21 @@ class DistributeAMCommand extends Command {
 
 		if (flags['multiple-gateway']) {
 			this.log(`${message}for multiple gateway setup`);
-			await configure(this, { 'multiple-gateway': true });
+			await configure(this, { 'multiple-gateway': true }).catch(error => {
+				if (error) logger.error(`Something went wrong when configuring apim-${version} for multiple-gateway\n` + error);
+			});
 		}
 		if (flags.distributed) {
 			this.log(`${message}for distributed setup`);
-			await configure(this, { distributed: true });
+			await configure(this, { distributed: true }).catch(error => {
+				if (error) logger.error(`Something went wrong when configuring apim-${version} for distributed\n` + error);
+			});
 		}
 		if (flags['is-km']) {
 			this.log(`${message}with IS as Keymanager`);
-			await configure(this, { 'is-km': true });
+			await configure(this, { 'is-km': true }).catch(error => {
+				if (error) logger.error(`Something went wrong when configuring apim-${version} with IS as Keymanager\n` + error);
+			});
 		}
 
 		if (!flags['multiple-gateway'] && !flags.distributed && !flags['is-km']) {

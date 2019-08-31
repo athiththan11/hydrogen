@@ -7,6 +7,7 @@ const Table = require('cli-table');
 const { exec } = require('shelljs');
 const { cli } = require('cli-ux');
 const { commentElement, alterElement, parseXML, removeDeclaration } = require('../../utils/utility');
+const { logger } = require('../../utils/logger');
 
 let pApiManager = '/repository/conf/api-manager.xml';
 let pAxis2 = '/repository/conf/axis2/axis2.xml';
@@ -115,6 +116,8 @@ function traverseMultipleGateway(ocli, pack, source, p, count) {
 			cli.action.stop();
 		}).then(() => {
 			traverseMultipleGateway(ocli, pack, source, p, ++count);
+		}).catch(error => {
+			if (error) logger.error(error);
 		});
 	} else {
 		buildMGWDoc(ocli);
@@ -176,6 +179,8 @@ async function configureMGWAIO(p) {
 			_altered.substring(_altered.indexOf('</Environments>'), _altered.length);
 
 		fs.writeFileSync(path.join(p, pApiManager), prettify(_altered, { indent: 4 }) + '\n', _utf8);
+	}).catch(error => {
+		if (error) logger.error(error);
 	});
 }
 
@@ -262,6 +267,8 @@ async function configureMGW(p, count) {
 		fs.writeFileSync(path.join(p, pApiManager), _altered, _utf8);
 	}).then(() => {
 		configurePortOffset(p, count);
+	}).catch(error => {
+		if (error) logger.error(error);
 	});
 }
 
@@ -343,6 +350,8 @@ function traverseDistributedDeployment(ocli, pack, source, p, count) {
 			cli.action.stop();
 		}).then(() => {
 			traverseDistributedDeployment(ocli, pack, source, p, ++count);
+		}).catch(error => {
+			if (error) logger.error(error);
 		});
 	} else {
 		buildDDDoc(ocli);
@@ -467,6 +476,8 @@ async function configureDGWay(p, count) {
 		fs.writeFileSync(path.join(p, pApiManager), prettify(_altered, { indent: 4 }) + '\n', _utf8);
 	}).then(() => {
 		configurePortOffset(p, count);
+	}).catch(error => {
+		if (error) logger.error(error);
 	});
 }
 
@@ -568,6 +579,8 @@ async function configureDKManager(p, count) {
 		alterUserMgt(p);
 	}).then(() => {
 		execProfileOptimization(p, 'api-key-manager', { silent: true });
+	}).catch(error => {
+		if (error) logger.error(error);
 	});
 }
 
@@ -759,6 +772,8 @@ async function configureDPub(p, count) {
 		alterJNDIProps(p);
 	}).then(() => {
 		execProfileOptimization(p, 'api-publisher', { silent: true });
+	}).catch(error => {
+		if (error) logger.error(error);
 	});
 }
 
@@ -933,6 +948,8 @@ async function configureDStore(p, count) {
 		alterUserMgt(p);
 	}).then(() => {
 		execProfileOptimization(p, 'api-store', { silent: true });
+	}).catch(error => {
+		if (error) logger.error(error);
 	});
 }
 
@@ -969,6 +986,8 @@ async function configureDTManager(p, _count) {
 		configurePortOffset(p, _count);
 	}).then(() => {
 		execProfileOptimization(p, 'traffic-manager', { silent: true });
+	}).catch(error => {
+		if (error) logger.error(error);
 	});
 }
 
@@ -1030,6 +1049,8 @@ async function alterUserMgt(p, ldap2jdbc) {
 		}
 
 		fs.writeFileSync(path.join(p, pUserMgt), prettify(_altered, { indent: 4 }) + '\n', _utf8);
+	}).catch(error => {
+		if (error) logger.error(error);
 	});
 }
 
@@ -1047,6 +1068,8 @@ connectionfactory.TopicConnectionFactory = amqp://admin:admin@clientid/carbon?br
 			altered.substring(altered.indexOf('connectionfactory.QueueConnectionFactory'));
 
 		fs.writeFileSync(path.join(p, pJNDIProperties), _altered, _utf8);
+	}).catch(error => {
+		if (error) logger.error(error);
 	});
 }
 
@@ -1081,6 +1104,8 @@ async function alterMDatasourceAM(p, args) {
 			altered.substring(altered.indexOf('</definition></datasource>') + '</definition></datasource>'.length, altered.length);
 
 		fs.writeFileSync(path.join(p, pMasterDatasource), prettify(_altered, { indent: 4 }) + '\n', _utf8);
+	}).catch(error => {
+		if (error) logger.error(error);
 	});
 }
 
@@ -1102,6 +1127,8 @@ async function alterMDatasourceUM(p, args) {
 			altered.substring(altered.indexOf('</definition></datasource>') + '</definition></datasource>'.length, altered.length);
 
 		fs.writeFileSync(path.join(p, pMasterDatasource), prettify(_altered, { indent: 4 }) + '\n', _utf8);
+	}).catch(error => {
+		if (error) logger.error(error);
 	});
 }
 
@@ -1123,6 +1150,8 @@ async function alterMDatasourceREG(p, args) {
 			altered.substring(altered.indexOf('</definition></datasource>') + '</definition></datasource>'.length, altered.length);
 
 		fs.writeFileSync(path.join(p, pMasterDatasource), prettify(_altered, { indent: 4 }) + '\n', _utf8);
+	}).catch(error => {
+		if (error) logger.error(error);
 	});
 }
 
@@ -1317,6 +1346,8 @@ function traverseISasKM(ocli, sync, count) {
 				cli.action.stop();
 			}).then(() => {
 				traverseISasKM(ocli, sync, ++count);
+			}).catch(error => {
+				if (error) logger.error(error);
 			});
 		}
 		if (pack.startsWith('wso2is-km')) {
@@ -1324,6 +1355,8 @@ function traverseISasKM(ocli, sync, count) {
 				cli.action.stop();
 			}).then(() => {
 				traverseISasKM(ocli, sync, ++count);
+			}).catch(error => {
+				if (error) logger.error(error);
 			});
 		}
 	} else {
@@ -1403,6 +1436,8 @@ async function configureISKM(p) {
 		alterRegistry(p, args);
 	}).then(() => {
 		alterUserMgt(p, true);
+	}).catch(error => {
+		if (error) logger.error(error);
 	});
 }
 
@@ -1495,6 +1530,8 @@ async function configureISKMAIO(p) {
 		alterRegistry(p, args);
 	}).then(() => {
 		alterUserMgt(p);
+	}).catch(error => {
+		if (error) logger.error(error);
 	});
 }
 
@@ -1528,6 +1565,8 @@ async function alterRegistry(p, args) {
 			altered.substring(altered.indexOf('<dbConfig name="govregistry">'));
 
 		fs.writeFileSync(path.join(p, pRegistry), prettify(_altered, { indent: 4 }) + '\n', _utf8);
+	}).catch(error => {
+		if (error) logger.error(error);
 	});
 }
 
@@ -1623,5 +1662,7 @@ async function configurePortOffset(p, count) {
 			_altered = alterElement(_altered, 'Offset', `port offset ${count}`);
 
 			fs.writeFileSync(path.join(p, pCarbon), _altered, _utf8);
+		}).catch(error => {
+			if (error) logger.error(error);
 		});
 }

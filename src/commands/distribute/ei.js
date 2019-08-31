@@ -1,6 +1,7 @@
 const { Command, flags } = require('@oclif/command');
 
 const { configure } = require('../../services/distribute/ei');
+const { logger } = require('../../utils/logger');
 
 class DistributeEICommand extends Command {
 	async run() {
@@ -9,7 +10,9 @@ class DistributeEICommand extends Command {
 
 		if (flags.cluster && flags.profile === 'esb') {
 			this.log(`starting to configure ei-${version} (esb profile) for 2 node clustered deployment`);
-			await configure(this, { esb: true });
+			await configure(this, { esb: true }).catch(error => {
+				if (error) logger.error(`Something went wrong when configuring ei-${version} (esb profile)\n` + error);
+			});
 		}
 
 		if (!flags.cluster) {

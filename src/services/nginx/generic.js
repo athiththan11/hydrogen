@@ -1,6 +1,8 @@
 const fs = require('fs-extra');
 const path = require('path');
 
+const { logger } = require('../../utils/logger');
+
 let pNginxConf = '/nginx-conf';
 
 let _p = process.cwd();
@@ -21,7 +23,9 @@ exports.buildNginx = async function (args, conf) {
 	fs.mkdirSync(pNginx);
 
 	if (args.cluster && args.esb) {
-		await buildESBClusterConf(pNginx, conf);
+		await buildESBClusterConf(pNginx, conf).catch(error => {
+			if (error) logger.error(error);
+		});
 	}
 };
 
@@ -60,11 +64,11 @@ server {
 	listen 443;
 	server_name ei.wso2.com;
 
-    ssl on;
-    ssl_certificate /etc/nginx/ssl/server.crt;
+	ssl on;
+	ssl_certificate /etc/nginx/ssl/server.crt;
 	ssl_certificate_key /etc/nginx/ssl/server.key;
 
-    location / {
+	location / {
 		proxy_set_header X-Forwarded-Host $host;
 		proxy_set_header X-Forwarded-Server $host;
 		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -81,14 +85,14 @@ server {
 	fs.writeFileSync(path.join(p, 'ei.https.conf'), https, _utf8);
 
 	let ui = `server {
-    listen 443;
+	listen 443;
 	server_name ui.ei.wso2.com;
 
-    ssl on;
-    ssl_certificate /etc/nginx/ssl/server.crt;
-    ssl_certificate_key /etc/nginx/ssl/server.key;
+	ssl on;
+	ssl_certificate /etc/nginx/ssl/server.crt;
+	ssl_certificate_key /etc/nginx/ssl/server.key;
 
-    location / {
+	location / {
 		proxy_set_header X-Forwarded-Host $host;
 		proxy_set_header X-Forwarded-Server $host;
 		proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

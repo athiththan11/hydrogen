@@ -1,6 +1,8 @@
 const { configureDatasource } = require('./generic');
 const { buildContainer } = require('../docker/datasource/generic');
 
+const { logger } = require('../../utils/logger');
+
 exports.configure = async function (ocli, product, opts) {
 	let args = {
 		_connectionUrl: 'jdbc:oracle:thin:@localhost:1521/wso2oracle',
@@ -30,6 +32,10 @@ exports.configure = async function (ocli, product, opts) {
 
 	configureDatasource(ocli, args, product, 'oracle').then(() => {
 		if (product === 'is' && opts.container)
-			buildContainer(ocli, 'oracle', opts);
+			buildContainer(ocli, 'oracle', opts).catch(error => {
+				if (error) logger.error('Something went wrong while building container for oracle\n' + error);
+			});
+	}).catch(error => {
+		if (error) logger.error(error);
 	});
 };
