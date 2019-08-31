@@ -72,8 +72,8 @@
 		"postpack": "rimraf oclif.manifest.json",
 		"posttest": "eslint --ignore-path .gitignore .",
 		"prepack": "oclif-dev manifest && oclif-dev readme",
-		"pretest": "NODE_ENV=mocha MOCHA_MULTIPLE_GATEWAY='/multiple-gateway' MOCHA_DISTRIBUTED='/distributed' MOCHA_ISKM='/is-km' MOCHA_ESBCLUSTERED='/clustered' || SET NODE_ENV=mocha \"MOCHA_MULTIPLE_GATEWAY=\"/multiple-gateway\"\" \"MOCHA_DISTRIBUTED=\"/distributed\"\" \"MOCHA_ISKM=\"/is-km\"\" \"MOCHA_ESBCLUSTERED=\"/clustered\"\"",
-		"test": "nyc mocha --forbid-only \"test/**/*.test.js\"",
+		"test:windows": "set NODE_ENV=mocha&& set MOCHA_MULTIPLE_GATEWAY=multiple-gateway&& set MOCHA_DISTRIBUTED=distributed&& set MOCHA_ISKM=is-km&& set MOCHA_ESBCLUSTERED=clustered&& nyc mocha --forbid-only \"test/**/*.test.js\"",
+		"test": "NODE_ENV=mocha MOCHA_MULTIPLE_GATEWAY='/multiple-gateway' MOCHA_DISTRIBUTED='/distributed' MOCHA_ISKM='/is-km' MOCHA_ESBCLUSTERED='/clustered' nyc mocha --forbid-only \"test/**/*.test.js\"",
 		"version": "oclif-dev readme && git add README.md"
 	}
 }
