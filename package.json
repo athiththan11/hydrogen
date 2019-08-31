@@ -36,9 +36,18 @@
 		"nyc": "13.3.0",
 		"rimraf": "2.6.3"
 	},
+	"engineStrict": true,
 	"engines": {
-		"node": ">=8.0.0"
+		"node": "8.9.0"
 	},
+	"config": {
+		"engine-strict": true
+	},
+	"os": [
+		"darwin",
+		"linux",
+		"win32"
+	],
 	"files": [
 		"/bin",
 		"/npm-shrinkwrap.json",
@@ -63,7 +72,8 @@
 		"postpack": "rimraf oclif.manifest.json",
 		"posttest": "eslint --ignore-path .gitignore .",
 		"prepack": "oclif-dev manifest && oclif-dev readme",
-		"test": "NODE_ENV=mocha MOCHA_MULTIPLE_GATEWAY='/multiple-gateway' MOCHA_DISTRIBUTED='/distributed' MOCHA_ISKM='/is-km' MOCHA_ESBCLUSTERED='/clustered' nyc mocha --forbid-only \"test/**/*.test.js\"",
+		"pretest": "NODE_ENV=mocha MOCHA_MULTIPLE_GATEWAY='/multiple-gateway' MOCHA_DISTRIBUTED='/distributed' MOCHA_ISKM='/is-km' MOCHA_ESBCLUSTERED='/clustered' || SET NODE_ENV=mocha \"MOCHA_MULTIPLE_GATEWAY=\"/multiple-gateway\"\" \"MOCHA_DISTRIBUTED=\"/distributed\"\" \"MOCHA_ISKM=\"/is-km\"\" \"MOCHA_ESBCLUSTERED=\"/clustered\"\"",
+		"test": "nyc mocha --forbid-only \"test/**/*.test.js\"",
 		"version": "oclif-dev readme && git add README.md"
 	}
 }
