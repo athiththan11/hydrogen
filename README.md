@@ -20,10 +20,6 @@
 
 <br />
 
----
-
-<br />
-
 ## Intro
 
 A command line tool to alter and configure fresh packs of WSO2 products for different requirements. The `hydrogen` supports to perform the following alterations and configurations ...
@@ -35,10 +31,6 @@ A command line tool to alter and configure fresh packs of WSO2 products for diff
 & more on the way.
 
 Checkout for more on [**Hydrogen WiKi**](https://github.com/athiththan11/hydrogen/wiki) & [**Hydrogen Project**](https://github.com/athiththan11/hydrogen/projects).
-
-<br />
-
----
 
 <br />
 
@@ -58,10 +50,6 @@ Checkout for more on [**Hydrogen WiKi**](https://github.com/athiththan11/hydroge
 	- [Distribute Examples](#distribute-examples)
 - [TODO: Features](#todo-features)
 - [License](#license)
-
-<br />
-
----
 
 <br />
 
@@ -95,15 +83,13 @@ This will reinstall all defined dependencies and builds to work with your enviro
 
 <br />
 
----
-
-<br />
-
 ## Commands
 
 Below listed are the available commands and descriptions of `hydrogen`.
 
 > All altered configurations are commented with `HYDROGENERATED:` keyword. If you want to list all the applied alterations, open a configured node and search for the keyword `HYDROGENERATED:` to list all the altered configurations.
+
+<br />
 
 ### Datasource
 
@@ -136,8 +122,6 @@ COMMANDS
 Click [here](#datasourceis) to jump to the WSO2 Identity Server related `datasource` commands.
 
 > For more information on changing the H2 databases and configurations of WSO2 Packs, visit [here](https://docs.wso2.com/display/ADMIN44x/Changing+the+Carbon+Database).
-
-<br />
 
 #### datasource:is
 
@@ -224,8 +208,6 @@ Click [here](#distributeam) to jump to the WSO2 API Manager related `distribute`
 
 > For more information on configuring WSO2 API Manager for distributed environments, visit [here](https://docs.wso2.com/display/AM260/Deploying+WSO2+API+Manager).
 
-<br />
-
 #### distribute:am
 
 ```shell
@@ -265,10 +247,6 @@ As present the `hydrogen` only supports configuring distributed setups for WSO2 
 setups, and later will be expanded to cover other supported deployment patterns and configurations.
 
 > **NOTE** : The `distribute:am` commands **are not** enhanced to create databases and to generate containers for databases and tables for the distributed environments.
-
-<br />
-
----
 
 <br />
 
@@ -345,8 +323,6 @@ setups, and later will be expanded to cover other supported deployment patterns 
 
 <br />
 
----
-
 ## TODO: Features
 
 - [ ] datasource:is
@@ -362,6 +338,8 @@ setups, and later will be expanded to cover other supported deployment patterns 
   - [ ] clustered BP
 
 & more...
+
+<br />
 
 ## License
 
