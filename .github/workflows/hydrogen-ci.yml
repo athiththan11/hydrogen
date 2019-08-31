@@ -6,13 +6,13 @@ on:
       - master
 
 jobs:
-  build:
+  unix-build:
     name: Test on node ${{ matrix.node_version }} and ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
 
     strategy:
       matrix:
-        node_version: [8]
+        node_version: [8.9.0]
         os: [ubuntu-latest, windows-latest, macOS-latest]
 
     steps:
@@ -24,3 +24,22 @@ jobs:
         run: |
           npm install
           npm test
+
+  windows-build:
+    name: Test on node ${{ matrix.node_version }} and ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        node_version: [8.9.0]
+        os: [windows-latest]
+
+    steps:
+      - uses: actions/checkout@v1
+      - uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node_version }}
+      - name: npm install, build, and test
+        run: |
+          npm install
+          npm run test:windows
