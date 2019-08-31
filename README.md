@@ -18,6 +18,12 @@
 
 [:construction: Work In Progress]
 
+<br />
+
+---
+
+<br />
+
 ## Intro
 
 A command line tool to alter and configure fresh packs of WSO2 products for different requirements. The `hydrogen` supports to perform the following alterations and configurations ...
@@ -26,11 +32,42 @@ A command line tool to alter and configure fresh packs of WSO2 products for diff
 * Configure API manager for distributed deployment
 * Configure API manager and IS as Keymanager
 
-& more on the way. Check [TODO](#todo) & Get me to the [Examples](#examples).
+& more on the way.
+
+Checkout for more on [**Hydrogen WiKi**](https://github.com/athiththan11/hydrogen/wiki) & [**Hydrogen Project**](https://github.com/athiththan11/hydrogen/projects).
+
+<br />
+
+---
+
+<br />
+
+## Table of Contents
+
+- [Intro](#intro)
+- [Table of Contents](#table-of-contents)
+- [Install & Run](#install--run)
+	- [Troubleshoot](#troubleshoot)
+- [Commands](#commands)
+	- [Datasource](#datasource)
+		- [datasource:is](#datasourceis)
+	- [Distribute](#distribute)
+		- [distribute:am](#distributeam)
+- [Examples](#examples)
+	- [Datasource Examples](#datasource-examples)
+	- [Distribute Examples](#distribute-examples)
+- [TODO: Features](#todo-features)
+- [License](#license)
+
+<br />
+
+---
+
+<br />
 
 ## Install & Run
 
-> You don't need to install NodeJS to use the `hydrogen`, since the packages and dependencies are compressed and provided as `tar` objects. If in need to rebuild and use the `hydrogen`, then the recomended versions of NodeJS are `v8.9`, `v10` and `v11`. **{ Node v8.9.0 Recomended }**
+> You don't need to install NodeJS to use the `hydrogen`, since the packages and dependencies are compressed and provided as `tar` objects. If in need to rebuild and use the `hydrogen`, then the recomended version of NodeJS is `v8.9`. **{ Node v8.9.0 Recomended }**
 
 Download the `tar` file according to your environment from [here](https://github.com/athiththan11/hydrogen/releases). Extract and place it in your favourite location and set the `$PATH` variable to point the `/bin` folder of `hydrogen`.
 
@@ -56,6 +93,12 @@ Error: /node_modules/libxmljs/build/xmljs.node: invalid ELF header
 
 This will reinstall all defined dependencies and builds to work with your environment as well as with NodeJS v8.9.0 environment.
 
+<br />
+
+---
+
+<br />
+
 ## Commands
 
 Below listed are the available commands and descriptions of `hydrogen`.
@@ -64,7 +107,7 @@ Below listed are the available commands and descriptions of `hydrogen`.
 
 ### Datasource
 
-To list available commands of `Datasource`, either run `hydrogen datasource` or execute `hydrogen datasource --help`.
+To list available commands of `Datasource`, execute `hydrogen datasource --help`.
 
 ```shell
 Alter datasources of WSO2 products (fresh-pack) with supported datasource vendors
@@ -90,9 +133,11 @@ COMMANDS
 
 **NOTE** : As present the `hydrogen` only supports replacing the H2 databases of WSO2 IS packs (v5.7) and later will be expanded to cover other supported versions and products.
 
-To go to the WSO2 IS related `datasource` commands, click [here](#datasourceis).
+Click [here](#datasourceis) to jump to the WSO2 Identity Server related `datasource` commands.
 
 > For more information on changing the H2 databases and configurations of WSO2 Packs, visit [here](https://docs.wso2.com/display/ADMIN44x/Changing+the+Carbon+Database).
+
+<br />
 
 #### datasource:is
 
@@ -142,9 +187,11 @@ The `datasource:is` commands also do support to generate Docker containers with 
 
 For usages and examples, navigate to [here](#datasource-examples).
 
+<br />
+
 ### Distribute
 
-To list available commands of `Distribute`, either run `hydrogen distribute` or execute `hydrogen distribute --help`.
+To list available commands of `Distribute`, execute `hydrogen distribute --help`.
 
 ```shell
 Configure WSO2 products for distributed deployments
@@ -171,11 +218,13 @@ COMMANDS
 
 `Distribute` commands are used to configure the WSO2 packs for distributed deployment setups.
 
-**NOTE** : As present the `hydrogen` only supports distributed WSO2 APIM packs (v2.6) and later will be expanded to cover other supported versions and distributions.
+**NOTE** : As present the `hydrogen` only supports distributed WSO2 API Manager packs (v2.6) and later will be expanded to cover other supported versions and distributions.
 
-To go to the WSO2 APIM related `distribute` commands, click [here](#distributeam).
+Click [here](#distributeam) to jump to the WSO2 API Manager related `distribute` commands.
 
-> For more information on configuring WSO2 APIM for distributed environments, visit [here](https://docs.wso2.com/display/AM260/Deploying+WSO2+API+Manager).
+> For more information on configuring WSO2 API Manager for distributed environments, visit [here](https://docs.wso2.com/display/AM260/Deploying+WSO2+API+Manager).
+
+<br />
 
 #### distribute:am
 
@@ -205,9 +254,9 @@ EXAMPLES
   $ hydrogen distribute:am -M -v 2.6
 ```
 
-`distribute:am` commands are used to configure the WSO2 APIM packs for distributed deployment setups.
+`distribute:am` commands are used to configure the WSO2 API Manager packs for distributed deployment setups.
 
-As present the `hydrogen` only supports configuring distributed setups for WSO2 APIM (v2.6) packs with
+As present the `hydrogen` only supports configuring distributed setups for WSO2 API Manager (v2.6) packs with
 
 * 5 node distributed deployment
 * Publish through multiple gateways
@@ -217,9 +266,11 @@ setups, and later will be expanded to cover other supported deployment patterns 
 
 > **NOTE** : The `distribute:am` commands **are not** enhanced to create databases and to generate containers for databases and tables for the distributed environments.
 
-For usages and examples, navigate to [here](#distribute-examples).
+<br />
 
 ---
+
+<br />
 
 ## Examples
 
@@ -230,7 +281,7 @@ For usages and examples, navigate to [here](#distribute-examples).
   * Open a terminal and navigate to the root of the extracted WSO2 IS pack
   * Execute the following
 	```shell
-	# inside wso2is-5.7
+	# inside wso2is-5.7.0
 	hydrogen datasource:is --replace --datasource postgres --version 5.7
 	```
 
@@ -243,18 +294,18 @@ For usages and examples, navigate to [here](#distribute-examples).
   * Open a terminal and navigate to the root of the extracted WSO2 IS pack
   * Execute the following
 	```shell
-	# inside wso2is-5.7
+	# inside wso2is-5.7.0
 	hydrogen datasource:is --replace --datasource postgres --version 5.7 --container --generate
 	```
 	The above command will create a `Postgres` Docker container with a random name (an animal name) with the databases and tables.
 
 ### Distribute Examples
 
-* Need to configure a 5 node distributed setup with WSO2 APIM v2.6 pack
-  * Download and extract a fresh pack of WSO2 APIM v2.6 inside a new directory (only containing the extracted WSO2 APIM pack)
+* Need to configure a 5 node distributed setup with WSO2 API Manager v2.6 pack
+  * Download and extract a fresh pack of WSO2 API Manager v2.6 inside a new directory (only containing the extracted WSO2 API Manager pack)
 	```tree
 	- MyNewFolder
-    	|- wso2am-2.6
+    	|- wso2am-2.6.0
 	```
   * Open terminal and navigate to the parent folder of the extracted WSO2 APIM pack
   * Execute the following
@@ -264,11 +315,11 @@ For usages and examples, navigate to [here](#distribute-examples).
 	```
 	The above command will create a new folder named `distributed` and places all configured 5 nodes within it.
 
-* Need to configure WSO2 APIM v2.6 for [publish through multiple-gateway](https://docs.wso2.com/display/AM260/Publish+through+Multiple+API+Gateways) setup.
-  * Download and extract a fresh pack of WSO2 APIM v2.6 inside a new directory (only containing the extracted WSO2 APIM pack)
+* Need to configure WSO2 API Manager v2.6 for [publish through multiple-gateway](https://docs.wso2.com/display/AM260/Publish+through+Multiple+API+Gateways) setup.
+  * Download and extract a fresh pack of WSO2 API Manager v2.6 inside a new directory (only the extracted WSO2 API Manager pack)
 	```tree
 	- MyNewFolder
-    	|- wso2am-2.6
+    	|- wso2am-2.6.0
 	```
   * Open terminal and navigate to the parent folder of the extracted WSO2 APIM pack
   * Execute the following
@@ -278,28 +329,40 @@ For usages and examples, navigate to [here](#distribute-examples).
 	```
 	The above command will create a new folder named `distributed` and places all configured nodes within it.
 
-* Need to configure WSO2 APIM v2.6 with IS-KM v5.7
-  * Download and extract both WSO2 APIM v2.6 and IS-KM v5.7 inside a new directory (only containing the extracted WSO2 APIM pack & the IS-KM pack)
+* Need to configure WSO2 API Manager v2.6 with IS-KM v5.7
+  * Download and extract both WSO2 API Manager v2.6 and IS-KM v5.7 inside a new directory (only the extracted WSO2 APIM pack & the IS-KM pack)
+	```tree
+    - MyNewFolder
+		|- wso2am-2.6
+		|- wso2is-km-5.7.0
+	```
   * Open a terminal and navigate to the parent folder of the extracted packs
   * Execute the following
 	```shell
+	# inside MyNewFolder
 	hydrogen distribute:am --is-km --version 2.6
 	```
 
+<br />
+
 ---
 
-## TODO
+## TODO: Features
 
 - [ ] datasource:is
-  - [ ] container support and database generation
-  - [ ] support other databases
+  - [ ] database support
     - [ ] MSSQL
     - [ ] DB2
+  - [ ] container support and database generation
+- [ ] dataosource:am
 - [ ] distribute:am
-  - [ ] support other deployment patterns
+  - [ ] active active deployment
+- [ ] distribute:ei
+  - [ ] clustered ESB
+  - [ ] clustered BP
 
 & more...
 
-### License
+## License
 
-[MIT](https://github.com/athiththan11/hydrogen/blob/master/LICENSE)
+Licensed under [MIT](https://github.com/athiththan11/hydrogen/blob/master/LICENSE).
