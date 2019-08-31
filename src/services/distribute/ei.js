@@ -5,7 +5,6 @@ const prettify = require('prettify-xml');
 const { cli } = require('cli-ux');
 const Table = require('cli-table');
 
-const { logger } = require('../../utils/logger');
 const { alterElement, commentElement, parseXML } = require('../../utils/utility');
 const { buildNginx } = require('../nginx/generic');
 
@@ -90,8 +89,6 @@ function traverseESBProfileNodes(ocli, pack, source, p, count) {
 			cli.action.stop();
 		}).then(() => {
 			traverseESBProfileNodes(ocli, pack, source, p, ++count);
-		}).catch(error => {
-			if (error) logger.error(error);
 		});
 	} else {
 		cli.action.start('generating nginx configurations');
@@ -99,8 +96,6 @@ function traverseESBProfileNodes(ocli, pack, source, p, count) {
 			cli.action.stop();
 		}).then(() => {
 			buildESBDoc(ocli);
-		}).catch(error => {
-			if (error) logger.error(error);
 		});
 	}
 }
@@ -181,8 +176,6 @@ async function configureESBNode(p, c) {
 		alterCarbon(p, c);
 	}).then(() => {
 		alterCatalina(p);
-	}).catch(error => {
-		if (error) logger.error(error);
 	});
 }
 
@@ -215,8 +208,6 @@ async function alterCarbon(p, count) {
 			_altered = alterElement(_altered, 'Offset', `port offset ${count}`);
 
 		fs.writeFileSync(path.join(p, pCarbon), _altered, _utf8);
-	}).catch(error => {
-		if (error) logger.error(error);
 	});
 }
 
@@ -240,8 +231,6 @@ async function alterCatalina(p) {
 			altered.substring(altered.lastIndexOf('<Connector'));
 
 		fs.writeFileSync(path.join(p, pCatalina), prettify(_altered, { indent: 4 }) + '\n', _utf8);
-	}).catch(error => {
-		if (error) logger.error(error);
 	});
 }
 

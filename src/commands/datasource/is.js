@@ -4,8 +4,6 @@ const MySQL = require('../../services/datasource/mysql');
 const Oracle = require('../../services/datasource/oracle');
 const Postgres = require('../../services/datasource/postgres');
 
-const { logger } = require('../../utils/logger');
-
 class DatasourceISCommand extends Command {
 	async run() {
 		const { flags } = this.parse(DatasourceISCommand);
@@ -21,17 +19,11 @@ class DatasourceISCommand extends Command {
 			this.log(`starting to alter wso2is-${version} with ${datasource} configurations`);
 
 			if (datasource === 'postgres')
-				await Postgres.configure(this, 'is', { container, generate }).catch(error => {
-					if (error) logger.error(`Something went wrong when altering wso2is-${version} with ${datasource} configurations\n` + error);
-				});
+				await Postgres.configure(this, 'is', { container, generate });
 			if (datasource === 'mysql')
-				await MySQL.configure(this, 'is', { container, generate }).catch(error => {
-					if (error) logger.error(`Something went wrong when altering wso2is-${version} with ${datasource} configurations\n` + error);
-				});
+				await MySQL.configure(this, 'is', { container, generate });
 			if (datasource === 'oracle')
-				await Oracle.configure(this, 'is', { container, generate }).catch(error => {
-					if (error) logger.error(`Something went wrong when altering wso2is-${version} with ${datasource} configurations\n` + error);
-				});
+				await Oracle.configure(this, 'is', { container, generate });
 		} else {
 			this._help();
 		}

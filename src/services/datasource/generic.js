@@ -5,7 +5,6 @@ const prettify = require('prettify-xml');
 
 const { cli } = require('cli-ux');
 const { parseXML, removeDeclaration } = require('../../utils/utility');
-const { logger } = require('../../utils/logger');
 
 let _p = process.cwd();
 let pMasterDatasource = '/repository/conf/datasources/master-datasources.xml';
@@ -35,8 +34,6 @@ exports.configureDatasource = async function (ocli, args, product, database) {
 			cli.action.stop();
 		}).then(() => {
 			buildISDoc(ocli, database, args);
-		}).catch(error => {
-			if (error) logger.error(error);
 		});
 	}
 	if (product === 'am') {
@@ -45,8 +42,6 @@ exports.configureDatasource = async function (ocli, args, product, database) {
 			cli.action.stop();
 		}).then(() => {
 			buildAMDoc(ocli, database, args);
-		}).catch(error => {
-			if (error) logger.error(error);
 		});
 	}
 };
@@ -83,8 +78,6 @@ async function alterAMMasterDatasource(ocli, args) {
 			altered.substring(altered.indexOf('</definition></datasource>') + '</definition></datasource>'.length, altered.length);
 
 		fs.writeFileSync(path.join(_p, pMasterDatasource), prettify(_altered, { indent: 4 }) + '\n', _utf8);
-	}).catch(error => {
-		if (error) logger.error(error);
 	});
 }
 
@@ -117,8 +110,6 @@ async function alterMasterDatasource(ocli, args) {
 			arr.join('\n');
 
 		fs.writeFileSync(path.join(_p, pMasterDatasource), prettify(_altered, { indent: 4 }) + '\n', _utf8);
-	}).catch(error => {
-		if (error) logger.error(error);
 	});
 }
 
@@ -185,8 +176,6 @@ async function alterIdentity(ocli, jndiName) {
 			altered.substring(altered.lastIndexOf(elem));
 
 		fs.writeFileSync(path.join(_p, pIdentity), prettify(_altered, { indent: 4 }) + '\n', _utf8);
-	}).catch(error => {
-		if (error) logger.error(error);
 	});
 }
 
@@ -220,8 +209,6 @@ async function alterRegistry(ocli, args) {
 			altered.substring(altered.indexOf('<dbConfig name="govregistry">'));
 
 		fs.writeFileSync(path.join(_p, pRegistry), prettify(_altered, { indent: 4 }) + '\n', _utf8);
-	}).catch(error => {
-		if (error) logger.error(error);
 	});
 }
 

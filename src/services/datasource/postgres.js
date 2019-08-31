@@ -1,8 +1,6 @@
 const { configureDatasource } = require('./generic');
 const { buildContainer } = require('../docker/datasource/generic');
 
-const { logger } = require('../../utils/logger');
-
 exports.configure = async function (ocli, product, opts) {
 	let args = {
 		_connectionUrl: 'jdbc:postgresql://localhost:5432/wso2postgres',
@@ -31,11 +29,7 @@ exports.configure = async function (ocli, product, opts) {
 
 	configureDatasource(ocli, args, product, 'postgres').then(() => {
 		if (product === 'is' && opts.container) {
-			buildContainer(ocli, 'postgres', opts).catch(error => {
-				if (error) logger.error('Something went wrong while building container for postgres\n' + error);
-			});
+			buildContainer(ocli, 'postgres', opts);
 		}
-	}).catch(error => {
-		if (error) logger.error(error);
 	});
 };

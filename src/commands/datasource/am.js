@@ -4,8 +4,6 @@ const MySQL = require('../../services/datasource/mysql');
 const Oracle = require('../../services/datasource/oracle');
 const Postgres = require('../../services/datasource/postgres');
 
-const { logger } = require('../../utils/logger');
-
 class DatasourceAPIMCommand extends Command {
 	async run() {
 		const { flags } = this.parse(DatasourceAPIMCommand);
@@ -18,17 +16,11 @@ class DatasourceAPIMCommand extends Command {
 			this.log(`starting to alter wso2am-${version} with ${datasource} configurations`);
 
 			if (datasource === 'postgres')
-				await Postgres.configure(this, 'am').catch(error => {
-					if (error) logger.error(`Something went wrong when altering wso2am-${version} with ${datasource} configurations\n` + error);
-				});
+				await Postgres.configure(this, 'am');
 			if (datasource === 'mysql')
-				await MySQL.configure(this, 'am').catch(error => {
-					if (error) logger.error(`Something went wrong when altering wso2am-${version} with ${datasource} configurations\n` + error);
-				});
+				await MySQL.configure(this, 'am');
 			if (datasource === 'oracle')
-				await Oracle.configure(this, 'am').catch(error => {
-					if (error) logger.error(`Something went wrong when altering wso2am-${version} with ${datasource} configurations\n` + error);
-				});
+				await Oracle.configure(this, 'am');
 		} else {
 			this._help();
 		}

@@ -63,14 +63,10 @@ let pMySQL = 'mysql.sql';
 
 exports.buildContainer = async function (ocli, database, opts) {
 	if (database === 'postgres') {
-		await buildPostgresContainer(ocli, opts).catch(error => {
-			if (error) logger.error('Something went wrong while building container for postgres\n' + error);
-		});
+		await buildPostgresContainer(ocli, opts);
 	}
 	if (database === 'mysql') {
-		await buildMySQLContainer(ocli, opts).catch(error => {
-			if (error) logger.error('Something went wrong while building container for mysql\n' + error);
-		});
+		await buildMySQLContainer(ocli, opts);
 	}
 };
 
@@ -107,8 +103,6 @@ A Docker container has been created for Postgres datasource : ${chance}`);
 		function onProgress(event) {
 			cli.action.start('pulling docker image');
 		}
-	}).catch(error => {
-		if (error) logger.error(error);
 	});
 }
 
@@ -140,8 +134,6 @@ A Docker container has been created for MySQL datasource : ${chance}`);
 		function onProgress(event) {
 			cli.action.start('pulling docker image');
 		}
-	}).catch(error => {
-		if (error) logger.error(error);
 	});
 }
 
