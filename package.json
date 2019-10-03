@@ -1,5 +1,5 @@
 {
-	"name": "hydrogen-cli",
+	"name": "@athiththan11/hydrogen-cli",
 	"description": "an interactive cli tool for wso2 servers",
 	"version": "0.3.0-beta",
 	"author": "Athiththan @athiththan11",
@@ -7,6 +7,9 @@
 		"hydrogen": "./bin/run"
 	},
 	"bugs": "https://github.com/athiththan11/hydrogen/issues",
+	"publishConfig": {
+		"registry": "https://npm.pkg.github.com/"
+	},
 	"dependencies": {
 		"@oclif/command": "1.5.18",
 		"@oclif/config": "1.13.2",
@@ -36,9 +39,6 @@
 		"mocha": "5.2.0",
 		"nyc": "13.3.0",
 		"rimraf": "2.6.3"
-	},
-	"publishConfig": {
-		"registry": "https://npm.pkg.github.com/"
 	},
 	"engineStrict": true,
 	"engines": {
