@@ -37,6 +37,9 @@
 		"nyc": "13.3.0",
 		"rimraf": "2.6.3"
 	},
+	"publishConfig": {
+		"registry": "https://npm.pkg.github.com/"
+	},
 	"engineStrict": true,
 	"engines": {
 		"node": "8.9.0"
