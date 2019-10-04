@@ -28,7 +28,7 @@ exports.configure = async function (ocli, product, opts) {
 
 	configureDatasource(ocli, args, product, 'mysql').then(() => {
 		if (product === 'is' && opts.container) {
-			buildContainer(ocli, 'mysql', opts);
+			buildContainer(ocli, 'mysql', product, opts);
 		}
 	});
 };
