@@ -3,7 +3,6 @@ const path = require('path');
 const Docker = require('dockerode');
 const Chance = require('chance');
 const Client = require('mysql');
-const execsql = require('execsql');
 const { cli } = require('cli-ux');
 
 const { logger } = require('../../../utils/logger');
@@ -132,7 +131,7 @@ async function readScripts(sp, db, product, paths) {
 	if (product === 'am') {
 		scripts[0] = fs.readFileSync(path.join(process.cwd(), paths.am.pApimgt, db)).toString();
 		scripts[1] = fs.readFileSync(path.join(process.cwd(), paths.am.pDBScripts, db)).toString();
-		scripts[3] = fs.readFileSync(path.join(process.cwd(), paths.am.pMBStore, 'postgresql-mb.sql')).toString();
+		scripts[3] = fs.readFileSync(path.join(process.cwd(), paths.am.pMBStore, 'mysql-mb.sql')).toString();
 	}
 
 	return scripts.join('');
