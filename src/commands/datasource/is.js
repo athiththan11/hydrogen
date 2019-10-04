@@ -1,5 +1,6 @@
 const { Command, flags } = require('@oclif/command');
 
+const MSSQL = require('../../services/datasource/mssql');
 const MySQL = require('../../services/datasource/mysql');
 const Oracle = require('../../services/datasource/oracle');
 const Postgres = require('../../services/datasource/postgres');
@@ -18,12 +19,14 @@ class DatasourceISCommand extends Command {
 		if (replace) {
 			this.log(`starting to alter wso2is-${version} with ${datasource} configurations`);
 
-			if (datasource === 'postgres')
-				await Postgres.configure(this, 'is', { container, generate });
+			if (datasource === 'mssql')
+				await MSSQL.configure(this, 'is', { container, generate });
 			if (datasource === 'mysql')
 				await MySQL.configure(this, 'is', { container, generate });
 			if (datasource === 'oracle')
 				await Oracle.configure(this, 'is', { container, generate });
+			if (datasource === 'postgres')
+				await Postgres.configure(this, 'is', { container, generate });
 		} else {
 			this._help();
 		}
@@ -64,7 +67,7 @@ DatasourceISCommand.flags = {
 		hidden: false,
 		multiple: false,
 		required: true,
-		options: ['postgres', 'mysql', 'oracle'],
+		options: ['postgres', 'mysql', 'mssql', 'oracle'],
 	}),
 	generate: flags.boolean({
 		char: 'g',

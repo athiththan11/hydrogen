@@ -1,5 +1,6 @@
 const { buildPostgresContainer } = require('./postgres');
 const { buildMySQLContainer } = require('./mysql');
+const { buildMSSQLContainer } = require('./mssql');
 
 let paths = {
 	is: {
@@ -22,5 +23,8 @@ exports.buildContainer = async function (ocli, database, product, opts) {
 	}
 	if (database === 'mysql') {
 		await buildMySQLContainer(ocli, paths, product, opts);
+	}
+	if (database === 'mssql') {
+		await buildMSSQLContainer(ocli, paths, product, opts);
 	}
 };
