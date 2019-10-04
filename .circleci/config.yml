@@ -16,9 +16,6 @@ jobs:
                   command: npm install
             - run: ./bin/run --version
             - run: ./bin/run --help
-            - run:
-                  name: Testing
-                  command: npm test
     node-11:
         <<: *test
         docker:
@@ -38,14 +35,6 @@ jobs:
                   command: npm install
             - run: ./bin/run --version
             - run: ./bin/run --help
-            - run:
-                  name: Testing
-                  command: npm test
-            - run:
-                  name: Submitting code coverage to codecov
-                  command: |
-                      ./node_modules/.bin/nyc report --reporter text-lcov > coverage.lcov
-                      curl -s https://codecov.io/bash | bash
     node-10:
         <<: *test
         docker:

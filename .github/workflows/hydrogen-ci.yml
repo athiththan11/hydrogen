@@ -7,7 +7,7 @@ on:
 
 jobs:
   unix-build:
-    name: Unix Build & Test on node ${{ matrix.node_version }} and ${{ matrix.os }}
+    name: Unix Build on node ${{ matrix.node_version }} and ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -20,13 +20,12 @@ jobs:
       - uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node_version }}
-      - name: npm install, build, and test
+      - name: npm install, build
         run: |
           npm install
-          npm test
 
   windows-build:
-    name: Windows Build & Test on node ${{ matrix.node_version }} and ${{ matrix.os }}
+    name: Windows Build on node ${{ matrix.node_version }} and ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -39,7 +38,6 @@ jobs:
       - uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node_version }}
-      - name: npm install, build, and test
+      - name: npm install, build
         run: |
           npm install
-          npm run test:windows
