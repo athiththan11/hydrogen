@@ -10,17 +10,20 @@ class DatasourceAPIMCommand extends Command {
 		const version = flags.version;
 		const datasource = flags.datasource;
 
+		const container = flags.container;
+		const generate = flags.generate;
+
 		const replace = flags.replace;
 
 		if (replace) {
 			this.log(`starting to alter wso2am-${version} with ${datasource} configurations`);
 
 			if (datasource === 'postgres')
-				await Postgres.configure(this, 'am');
+				await Postgres.configure(this, 'am', { container, generate });
 			if (datasource === 'mysql')
-				await MySQL.configure(this, 'am');
+				await MySQL.configure(this, 'am', { container, generate });
 			if (datasource === 'oracle')
-				await Oracle.configure(this, 'am');
+				await Oracle.configure(this, 'am', { container, generate });
 		} else {
 			this._help();
 		}
@@ -43,9 +46,18 @@ use --replace (-R) and pass supported datasource with --datasource flag (--datas
 DatasourceAPIMCommand.examples = [
 	`Replace H2 with Postgres
 $ hydrogen datasource:am -R -v 2.6 -d postgres`,
+	`Replace H2 with Postgres and generate a container for database
+$ hydrogen datasource:am -R -v 2.6 -d postgres --container --generate`,
 ];
 
 DatasourceAPIMCommand.flags = {
+	container: flags.boolean({
+		char: 'c',
+		description: 'create docker container for datasource',
+		hidden: false,
+		multiple: false,
+		required: false,
+	}),
 	datasource: flags.string({
 		char: 'd',
 		description: 'datasource type',
@@ -53,6 +65,14 @@ DatasourceAPIMCommand.flags = {
 		multiple: false,
 		required: true,
 		options: ['postgres', 'mysql', 'oracle'],
+	}),
+	generate: flags.boolean({
+		char: 'g',
+		description: 'generate database and tables in run-time created container',
+		hidden: false,
+		multiple: false,
+		required: false,
+		dependsOn: ['container'],
 	}),
 	replace: flags.boolean({
 		char: 'R',
