@@ -29,7 +29,7 @@ exports.configure = async function (ocli, product, opts) {
 
 	configureDatasource(ocli, args, product, 'postgres').then(() => {
 		if (product === 'is' && opts.container) {
-			buildContainer(ocli, 'postgres', opts);
+			buildContainer(ocli, 'postgres', product, opts);
 		}
 	});
 };
