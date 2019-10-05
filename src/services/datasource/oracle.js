@@ -1,5 +1,5 @@
 const { configureDatasource } = require('./generic');
-const { buildContainer } = require('../docker/datasource/generic');
+// const { buildContainer } = require('../docker/datasource/generic');
 
 exports.configure = async function (ocli, product, opts) {
 	let args = {
@@ -29,7 +29,7 @@ exports.configure = async function (ocli, product, opts) {
 	}
 
 	configureDatasource(ocli, args, product, 'oracle').then(() => {
-		if (product === 'is' && opts.container)
-			buildContainer(ocli, 'oracle', opts);
+		// if (product === 'is' && opts.container)
+		// 	buildContainer(ocli, 'oracle', opts);
 	});
 };
