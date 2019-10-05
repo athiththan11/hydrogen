@@ -8,13 +8,11 @@ const Postgres = require('../../services/datasource/postgres');
 class DatasourceISCommand extends Command {
 	async run() {
 		const { flags } = this.parse(DatasourceISCommand);
-		const version = flags.version;
-		const datasource = flags.datasource;
-
 		const container = flags.container;
+		const datasource = flags.datasource;
 		const generate = flags.generate;
-
 		const replace = flags.replace;
+		const version = flags.version;
 
 		if (replace) {
 			this.log(`starting to alter wso2is-${version} with ${datasource} configurations`);
