@@ -1,5 +1,6 @@
 const { Command, flags } = require('@oclif/command');
 
+const MSSQL = require('../../services/datasource/mssql');
 const MySQL = require('../../services/datasource/mysql');
 const Oracle = require('../../services/datasource/oracle');
 const Postgres = require('../../services/datasource/postgres');
@@ -7,23 +8,23 @@ const Postgres = require('../../services/datasource/postgres');
 class DatasourceAPIMCommand extends Command {
 	async run() {
 		const { flags } = this.parse(DatasourceAPIMCommand);
-		const version = flags.version;
-		const datasource = flags.datasource;
-
 		const container = flags.container;
+		const datasource = flags.datasource;
 		const generate = flags.generate;
-
 		const replace = flags.replace;
+		const version = flags.version;
 
 		if (replace) {
 			this.log(`starting to alter wso2am-${version} with ${datasource} configurations`);
 
-			if (datasource === 'postgres')
-				await Postgres.configure(this, 'am', { container, generate });
+			if (datasource === 'mssql')
+				await MSSQL.configure(this, 'am', { container, generate });
 			if (datasource === 'mysql')
 				await MySQL.configure(this, 'am', { container, generate });
 			if (datasource === 'oracle')
 				await Oracle.configure(this, 'am', { container, generate });
+			if (datasource === 'postgres')
+				await Postgres.configure(this, 'am', { container, generate });
 		} else {
 			this._help();
 		}
@@ -64,7 +65,7 @@ DatasourceAPIMCommand.flags = {
 		hidden: false,
 		multiple: false,
 		required: true,
-		options: ['postgres', 'mysql', 'oracle'],
+		options: ['postgres', 'mysql', 'mssql', 'oracle'],
 	}),
 	generate: flags.boolean({
 		char: 'g',

@@ -19,16 +19,16 @@ exports.configure = async function (ocli, product, opts) {
 		_validationQuery: 'SELECT 1',
 	};
 
-	// TODO: change the configurations to MSSQL database
 	if (product === 'am') {
 		args._connectionUrl = 'jdbc:sqlserver://localhost:1433;databaseName=wso2amdb;SendStringParametersAsUnicode=false';
+		args._defaultAutoCommit = 'true';
 		args._description = 'The datasource used for API Manager database';
 		args._jndiName = 'jdbc/WSO2AM_DB';
 		args._name = 'WSO2AM_DB';
 	}
 
 	configureDatasource(ocli, args, product, 'mssql').then(() => {
-		if (product === 'is' && opts.container) {
+		if ((product === 'is' || product === 'am') && opts.container) {
 			buildContainer(ocli, 'mssql', product, opts);
 		}
 	});

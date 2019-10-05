@@ -292,4 +292,11 @@ function buildDriverDoc(ocli, database) {
 		// 	logger.error(error);
 		// });
 	}
+	if (database === 'mssql') {
+		ocli.log('NOTE: Download the MSQQL JDBC Driver and place it inside /repository/components/lib folder.');
+		cli.url('MSSQL JDBC Driver', 'https://docs.microsoft.com/en-us/sql/connect/jdbc/download-microsoft-jdbc-driver-for-sql-server?view=sql-server-2017');
+		// cli.open('https://docs.microsoft.com/en-us/sql/connect/jdbc/download-microsoft-jdbc-driver-for-sql-server?view=sql-server-2017').catch(error => {
+		// 	logger.error(error);
+		// });
+	}
 }
