@@ -41,14 +41,14 @@ Alter datasource configurations of WSO2 IS products based on your preference.
 
 As of now, Hydrogen only supports replacing the default H2 datasource with a variety
 of available supported datasource models. To replace the default shipped H2 datasource,
-use --replace (-R) and pass supported datasource with --datasource flag (--datasource mysql).
+use --replace (-r) and pass supported datasource with --datasource flag (--datasource mysql).
 `;
 
 DatasourceISCommand.examples = [
 	`Replace H2 with Postgres
-$ hydrogen datasource:is -R -v 5.7 -d postgres`,
+$ hydrogen datasource:is --replace -v 5.7 -d postgres`,
 	`Replace H2 with Postgres and generate a container for database
-$ hydrogen datasource:is -R -v 5.7 -d postgres --container --generate`,
+$ hydrogen datasource:is --replace -v 5.7 -d postgres --container --generate`,
 ];
 
 DatasourceISCommand.flags = {
@@ -76,7 +76,7 @@ DatasourceISCommand.flags = {
 		dependsOn: ['container'],
 	}),
 	replace: flags.boolean({
-		char: 'R',
+		char: 'r',
 		description: 'replace h2 datasource',
 		hidden: false,
 		multiple: false,

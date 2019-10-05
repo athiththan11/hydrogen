@@ -41,14 +41,14 @@ Alter datasource configurations of WSO2 APIM products based on your preference.
 
 As of now, Hydrogen only supports replacing the default H2 datasource with a variety
 of available datasource models. To replace the default shipped H2 datasource,
-use --replace (-R) and pass supported datasource with --datasource flag (--datasource mysql).
+use --replace (-r) and pass supported datasource with --datasource flag (--datasource mysql).
 `;
 
 DatasourceAPIMCommand.examples = [
 	`Replace H2 with Postgres
-$ hydrogen datasource:am -R -v 2.6 -d postgres`,
+$ hydrogen datasource:am --replace -v 2.6 -d postgres`,
 	`Replace H2 with Postgres and generate a container for database
-$ hydrogen datasource:am -R -v 2.6 -d postgres --container --generate`,
+$ hydrogen datasource:am --replace -v 2.6 -d postgres --container --generate`,
 ];
 
 DatasourceAPIMCommand.flags = {
@@ -76,10 +76,18 @@ DatasourceAPIMCommand.flags = {
 		dependsOn: ['container'],
 	}),
 	replace: flags.boolean({
-		char: 'R',
+		char: 'r',
 		description: 'replace h2 datasource',
 		hidden: false,
 		multiple: false,
+		exclusive: ['setup'],
+	}),
+	setup: flags.boolean({
+		char: 's',
+		description: 'setup datasource',
+		hidden: false,
+		multiple: false,
+		exclusive: ['replace'],
 	}),
 	version: flags.string({
 		char: 'v',
