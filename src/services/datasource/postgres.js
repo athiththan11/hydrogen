@@ -21,14 +21,14 @@ exports.configure = async function (ocli, product, opts) {
 
 	if (product === 'am') {
 		args._connectionUrl = 'jdbc:postgresql://localhost:5432/wso2amdb';
-		args._defaultAutoCommit = 'false';
+		args._defaultAutoCommit = 'true';
 		args._description = 'The datasource used for API Manager database';
 		args._jndiName = 'jdbc/WSO2AM_DB';
 		args._name = 'WSO2AM_DB';
 	}
 
 	configureDatasource(ocli, args, product, 'postgres').then(() => {
-		if (product === 'is' && opts.container) {
+		if ((product === 'is' || product === 'am') && opts.container) {
 			buildContainer(ocli, 'postgres', product, opts);
 		}
 	});

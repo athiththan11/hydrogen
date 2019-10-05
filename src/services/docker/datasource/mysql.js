@@ -86,33 +86,62 @@ async function executeMySQLScripts(ocli, product, paths) {
 
 	setTimeout(() => {
 		let client = Client.createConnection(config);
-		client.connect(err => {
-			if (err) {
-				ocli.log('Something went wrong while connecting to MySQL');
-				return logger.error(err);
-			}
-			client.query('create database wso2mysql charset latin1 collate latin1_swedish_ci', (err, res) => {
+		if (product === 'is')
+			client.connect(err => {
 				if (err) {
-					ocli.log('Something went wrong while creating database');
+					ocli.log('Something went wrong while connecting to MySQL');
 					return logger.error(err);
 				}
-				config.database = 'wso2mysql';
-				const newClient = Client.createConnection(config);
-
-				newClient.query(script, (err, res) => {
+				client.query('create database wso2mysql charset latin1 collate latin1_swedish_ci', (err, res) => {
 					if (err) {
-						ocli.log('Something went wrong while executing DB scripts');
-						logger.error(err);
+						ocli.log('Something went wrong while creating database');
+						return logger.error(err);
 					}
+					config.database = 'wso2mysql';
+					const newClient = Client.createConnection(config);
 
-					newClient.end();
-					client.end();
-					cli.action.stop();
+					newClient.query(script, (err, res) => {
+						if (err) {
+							ocli.log('Something went wrong while executing DB scripts');
+							logger.error(err);
+						}
+
+						newClient.end();
+						client.end();
+						cli.action.stop();
+					});
 				});
-			});
 
-			client.query(`grant all on ${'wso2mysql'}.* to '${'mysql'}'@'%'; FLUSH PRIVILEGES;`);
-		});
+				client.query(`grant all on ${'wso2mysql'}.* to '${'mysql'}'@'%'; FLUSH PRIVILEGES;`);
+			});
+		if (product === 'am')
+			client.connect(err => {
+				if (err) {
+					ocli.log('Something went wrong while connecting to MySQL');
+					return logger.error(err);
+				}
+				client.query('create database wso2amdb charset latin1 collate latin1_swedish_ci', (err, res) => {
+					if (err) {
+						ocli.log('Something went wrong while creating database');
+						return logger.error(err);
+					}
+					config.database = 'wso2amdb';
+					const newClient = Client.createConnection(config);
+
+					newClient.query(script, (err, res) => {
+						if (err) {
+							ocli.log('Something went wrong while executing DB scripts');
+							logger.error(err);
+						}
+
+						newClient.end();
+						client.end();
+						cli.action.stop();
+					});
+				});
+
+				client.query(`grant all on ${'wso2amdb'}.* to '${'mysql'}'@'%'; FLUSH PRIVILEGES;`);
+			});
 	}, 20000);
 }
 
@@ -120,7 +149,7 @@ async function readScripts(sp, db, product, paths) {
 	let scripts = [];
 
 	if (product === 'is') {
-		scripts[0] = 'SET SQL_MODE=\'ALLOW_INVALID_DATES\';';
+		scripts[0] = "SET SQL_MODE='ALLOW_INVALID_DATES';";
 		scripts[1] = fs.readFileSync(path.join(process.cwd(), paths.is.pDBScripts, db)).toString();
 		scripts[2] = fs.readFileSync(path.join(process.cwd(), paths.is.pIdentity, db)).toString();
 		// scripts[3] = fs.readFileSync(path.join(process.cwd(), paths.is.pStoredProcedure, sp, 'oauth2-token-cleanup.sql')).toString();
@@ -129,9 +158,10 @@ async function readScripts(sp, db, product, paths) {
 	}
 
 	if (product === 'am') {
-		scripts[0] = fs.readFileSync(path.join(process.cwd(), paths.am.pApimgt, db)).toString();
-		scripts[1] = fs.readFileSync(path.join(process.cwd(), paths.am.pDBScripts, db)).toString();
-		scripts[3] = fs.readFileSync(path.join(process.cwd(), paths.am.pMBStore, 'mysql-mb.sql')).toString();
+		scripts[0] = "SET SQL_MODE='ALLOW_INVALID_DATES';";
+		scripts[1] = fs.readFileSync(path.join(process.cwd(), paths.am.pApimgt, db)).toString();
+		// scripts[2] = fs.readFileSync(path.join(process.cwd(), paths.am.pDBScripts, db)).toString();
+		// scripts[3] = fs.readFileSync(path.join(process.cwd(), paths.am.pMBStore, 'mysql-mb.sql')).toString();
 	}
 
 	return scripts.join('');

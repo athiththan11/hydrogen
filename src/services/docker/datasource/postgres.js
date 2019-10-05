@@ -78,24 +78,44 @@ async function executePostgresScripts(ocli, product, paths) {
 	let script = await readScripts('postgre', pPostgres, product, paths);
 
 	setTimeout(() => {
-		createdb(config, 'wso2postgres').then(() => {
-			config.database = 'wso2postgres';
-			const client = new Client(config);
-			client.connect();
+		if (product === 'is')
+			createdb(config, 'wso2postgres').then(() => {
+				config.database = 'wso2postgres';
+				const client = new Client(config);
+				client.connect();
 
-			client.query(script, (err, res) => {
-				if (err) {
-					ocli.log('Something went wrong while executing DB scripts');
-					logger.error(err);
-				}
+				client.query(script, (err, res) => {
+					if (err) {
+						ocli.log('Something went wrong while executing DB scripts');
+						logger.error(err);
+					}
 
-				client.end();
+					client.end();
+				});
+			}).then(() => {
+				cli.action.stop();
+			}).catch(error => {
+				if (error) logger.error(error);
 			});
-		}).then(() => {
-			cli.action.stop();
-		}).catch(error => {
-			if (error) logger.error(error);
-		});
+		if (product === 'am')
+			createdb(config, 'wso2amdb').then(() => {
+				config.database = 'wso2amdb';
+				const client = new Client(config);
+				client.connect();
+
+				client.query(script, (err, res) => {
+					if (err) {
+						ocli.log('Something went wrong while executing DB scripts');
+						logger.error(err);
+					}
+
+					client.end();
+				});
+			}).then(() => {
+				cli.action.stop();
+			}).catch(error => {
+				if (error) logger.error(error);
+			});
 	}, 5000);
 }
 
@@ -112,8 +132,8 @@ async function readScripts(sp, db, product, paths) {
 
 	if (product === 'am') {
 		scripts[0] = fs.readFileSync(path.join(process.cwd(), paths.am.pApimgt, db)).toString();
-		scripts[1] = fs.readFileSync(path.join(process.cwd(), paths.am.pDBScripts, db)).toString();
-		scripts[3] = fs.readFileSync(path.join(process.cwd(), paths.am.pMBStore, 'postgresql-mb.sql')).toString();
+		// scripts[1] = fs.readFileSync(path.join(process.cwd(), paths.am.pDBScripts, db)).toString();
+		// scripts[2] = fs.readFileSync(path.join(process.cwd(), paths.am.pMBStore, 'postgresql-mb.sql')).toString();
 	}
 
 	return scripts.join('\n');
