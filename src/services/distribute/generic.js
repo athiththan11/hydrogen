@@ -1649,4 +1649,4 @@ async function configurePortOffset(p, count) {
 		});
 }
 
-module.exports = { configureAMDatasource };
+exports.configureAMDatasource =  configureAMDatasource;

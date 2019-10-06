@@ -19,7 +19,7 @@ class DatasourceAPIMCommand extends Command {
 			this.log(`starting to alter wso2am-${version} with ${datasource} configurations`);
 
 			if (datasource === 'mssql')
-				await MSSQL.configure(this, 'am', { container, generate });
+				await MSSQL.configure(this, 'am', { container, generate, replace, setup });
 			if (datasource === 'mysql')
 				await MySQL.configure(this, 'am', { container, generate, replace, setup });
 			if (datasource === 'oracle')

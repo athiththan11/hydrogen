@@ -29,11 +29,18 @@ let _confs = {
 			},
 		},
 	},
+	am: {
+		setup: [
+			'apimgtdb',
+			'userdb',
+			'regdb',
+		],
+	},
 };
 
 let pMssql = 'mssql.sql';
 
-// build postgres container
+// build mssql container
 exports.buildMSSQLContainer = async function (ocli, paths, product, opts) {
 	let instance = new Docker();
 	let chance = new Chance().animal().replace(/[^a-zA-Z]/g, '');
@@ -57,7 +64,10 @@ A Docker container has been created for MSSQL datasource : ${chance}`);
 					container.start().then(() => {
 						if (opts.generate) {
 							cli.action.start('executing database scripts');
-							executeMSSQLScripts(ocli, product, paths);
+							if (opts.setup)
+								executeSetupMSSQLScripts(ocli, product, paths);
+							else
+								executeMSSQLScripts(ocli, product, paths);
 						}
 					});
 				});
@@ -69,6 +79,7 @@ A Docker container has been created for MSSQL datasource : ${chance}`);
 	});
 };
 
+// execute mssql scripts for replace datasource
 async function executeMSSQLScripts(ocli, product, paths) {
 	let config = {
 		user: 'sa',
@@ -148,6 +159,7 @@ async function executeMSSQLScripts(ocli, product, paths) {
 	}, 10000);
 }
 
+// read mssql sql scripts from file system
 async function readScripts(sp, db, product, paths) {
 	let scripts = [];
 
@@ -166,4 +178,78 @@ async function readScripts(sp, db, product, paths) {
 	}
 
 	return scripts.join('');
+}
+
+// execute mssql scripts for api manager setup datasource
+async function executeSetupMSSQLScripts(ocli, product, paths) {
+	let config = {
+		user: 'sa',
+		password: 'Hydr0g@n',
+		server: 'localhost',
+	};
+
+	setTimeout(() => {
+		if (product === 'am')
+			traverseAMDatasource(ocli, config, paths, 0);
+	}, 10000);
+}
+
+// function to traverse through multiple different datasource configurations
+async function traverseAMDatasource(ocli, config, paths, count) {
+	if (count < _confs.am.setup.length) {
+		cli.action.stop();
+		let script = await readAMSetupScripts('mssql', pMssql, paths);
+		cli.action.start(`creating and executing scripts for ${_confs.am.setup[count]}`);
+
+		Client.connect(config, err => {
+			if (err) {
+				ocli.log('Something went wrong while connecting to MSSQL');
+				return logger.error(err);
+			}
+
+			let query = `create database ${_confs.am.setup[count]};`;
+			new Client.Request().query(query.toString(), (err, res) => {
+				if (err) {
+					ocli.log('Something went wrong while creating database');
+					return logger.error(err);
+				}
+
+				Client.close();
+				config.database = _confs.am.setup[count];
+				Client.connect(config, err => {
+					if (err) {
+						return logger.error(err);
+					}
+
+					// eslint-disable-next-line max-nested-callbacks
+					new Client.Request().query(script[_confs.am.setup[count]], (err, res) => {
+						if (err) {
+							ocli.log('Something went wrong while executing DB scripts');
+							logger.error(err);
+						}
+
+						Client.close();
+						cli.action.stop();
+						traverseAMDatasource(ocli, config, paths, ++count);
+					});
+				});
+			});
+		});
+	}
+}
+
+// read mssql sql scripts of api manager from file system
+async function readAMSetupScripts(sp, db, paths) {
+	let scripts = [];
+
+	scripts[0] = fs.readFileSync(path.join(process.cwd(), paths.am.pApimgt, db)).toString();
+	scripts[1] = fs.readFileSync(path.join(process.cwd(), paths.am.pDBScripts, db)).toString();
+
+	let script = {
+		apimgtdb: scripts[0],
+		userdb: scripts[1],
+		regdb: scripts[1],
+	};
+
+	return script;
 }
