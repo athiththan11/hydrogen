@@ -276,7 +276,33 @@ setups, and later will be expanded to cover other supported deployment patterns 
 	# inside wso2is-5.7.0
 	hydrogen datasource:is --replace --datasource postgres --version 5.7 --container --generate
 	```
+
 	The above command will create a `Postgres` Docker container with a random name (an animal name) with the databases and tables.
+
+* Need to configure WSO2 API Manager v2.6 with `Postgres` by replacing the default shipped H2 Carbon database (WSO2 AM DB)
+
+  * Download and extract a fresh pack of WSO2 AM v2.6
+  * Open a terminal and navigate to the root of the extracted WSO2 AM pack
+  * Execute the following
+
+    ```shell
+    #inside wso2am-2.6.0
+    hydrogen datasource:am --replace --datasource postgres --version 2.6
+    ```
+
+* Need to configure WSO2 API Manager v2.6 pack with `Postgres` by replacing the default shipped H2 Carbon database (WSO2 AM DB) and also to generate a Docker container for Postgre with databases
+
+  * Download and extract a fresh pack pf WSO2 AM v2.6
+  * Start the Docker service in your environment (if you don't have Docker installed, install Docker before executing the command to work without any errors)
+  * Open a terminal and navigate to the root of the extracted WSO2 AM pack
+  * Execute the following
+
+    ```shell
+    #inside wso2am-2.6.0
+    hydrogen datasource:am --setup --datasource postgres --version 2.6 --container --generate
+    ```
+
+	The above command will create a `Postgres` Docker container with a random name (an animal name) including the databases and tables for `apimgt`, `userdb`, and `regdb`.
 
 ### Distribute Examples
 

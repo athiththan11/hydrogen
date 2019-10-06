@@ -50,6 +50,10 @@ DatasourceAPIMCommand.examples = [
 $ hydrogen datasource:am --replace -v 2.6 -d postgres`,
 	`Replace H2 with Postgres and generate a container for database
 $ hydrogen datasource:am --replace -v 2.6 -d postgres --container --generate`,
+	`Setup AM, UM, & REG Datasrouce with Postgres
+$ hydrogen datasource:am --setup -v 2.6 -d postgres`,
+	`Setup AM, UM, & REG Datasrouce with Postgres and generate a container for database
+$ hydrogen datasource:am --setup -v 2.6 -d postgres --container --generate`,
 ];
 
 DatasourceAPIMCommand.flags = {
@@ -85,7 +89,7 @@ DatasourceAPIMCommand.flags = {
 	}),
 	setup: flags.boolean({
 		char: 's',
-		description: 'setup datasource',
+		description: 'setup am, um, & reg datasource',
 		hidden: false,
 		multiple: false,
 		exclusive: ['replace'],
