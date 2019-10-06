@@ -48,7 +48,6 @@ Checkout for more on [**Hydrogen WiKi**](https://github.com/athiththan11/hydroge
 - [Examples](#examples)
 	- [Datasource Examples](#datasource-examples)
 	- [Distribute Examples](#distribute-examples)
-- [TODO: Features](#todo-features)
 - [License](#license)
 
 <br />
@@ -258,6 +257,7 @@ setups, and later will be expanded to cover other supported deployment patterns 
   * Download and extract a fresh pack of WSO2 IS v5.7
   * Open a terminal and navigate to the root of the extracted WSO2 IS pack
   * Execute the following
+
 	```shell
 	# inside wso2is-5.7.0
 	hydrogen datasource:is --replace --datasource postgres --version 5.7
@@ -271,6 +271,7 @@ setups, and later will be expanded to cover other supported deployment patterns 
   * Start the Docker service in your environment (if you don't have Docker intalled, install Docker before executing the command to work without any errors)
   * Open a terminal and navigate to the root of the extracted WSO2 IS pack
   * Execute the following
+
 	```shell
 	# inside wso2is-5.7.0
 	hydrogen datasource:is --replace --datasource postgres --version 5.7 --container --generate
@@ -281,63 +282,56 @@ setups, and later will be expanded to cover other supported deployment patterns 
 
 * Need to configure a 5 node distributed setup with WSO2 API Manager v2.6 pack
   * Download and extract a fresh pack of WSO2 API Manager v2.6 inside a new directory (only containing the extracted WSO2 API Manager pack)
+
 	```tree
 	- MyNewFolder
     	|- wso2am-2.6.0
 	```
+
   * Open terminal and navigate to the parent folder of the extracted WSO2 APIM pack
   * Execute the following
+
 	```shell
 	# inside MyNewFolder
 	hydrogen distribute:am --distributed --version 2.6
 	```
+
 	The above command will create a new folder named `distributed` and places all configured 5 nodes within it.
 
 * Need to configure WSO2 API Manager v2.6 for [publish through multiple-gateway](https://docs.wso2.com/display/AM260/Publish+through+Multiple+API+Gateways) setup.
   * Download and extract a fresh pack of WSO2 API Manager v2.6 inside a new directory (only the extracted WSO2 API Manager pack)
+
 	```tree
 	- MyNewFolder
     	|- wso2am-2.6.0
 	```
+
   * Open terminal and navigate to the parent folder of the extracted WSO2 APIM pack
   * Execute the following
+
 	```shell
 	# inside MyNewFolder
 	hydrogen distribute:am --multiple-gateway --version 2.6
 	```
+
 	The above command will create a new folder named `distributed` and places all configured nodes within it.
 
 * Need to configure WSO2 API Manager v2.6 with IS-KM v5.7
   * Download and extract both WSO2 API Manager v2.6 and IS-KM v5.7 inside a new directory (only the extracted WSO2 APIM pack & the IS-KM pack)
+
 	```tree
     - MyNewFolder
 		|- wso2am-2.6
 		|- wso2is-km-5.7.0
 	```
+
   * Open a terminal and navigate to the parent folder of the extracted packs
   * Execute the following
+
 	```shell
 	# inside MyNewFolder
 	hydrogen distribute:am --is-km --version 2.6
 	```
-
-<br />
-
-## TODO: Features
-
-- [ ] datasource:is
-  - [ ] database support
-    - [ ] MSSQL
-    - [ ] DB2
-  - [ ] container support and database generation
-- [ ] dataosource:am
-- [ ] distribute:am
-  - [ ] active active deployment
-- [ ] distribute:ei
-  - [ ] clustered ESB
-  - [ ] clustered BP
-
-& more...
 
 <br />
 
