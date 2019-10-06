@@ -12,9 +12,10 @@ class DatasourceAPIMCommand extends Command {
 		const datasource = flags.datasource;
 		const generate = flags.generate;
 		const replace = flags.replace;
+		const setup = flags.setup;
 		const version = flags.version;
 
-		if (replace) {
+		if (replace || setup) {
 			this.log(`starting to alter wso2am-${version} with ${datasource} configurations`);
 
 			if (datasource === 'mssql')
@@ -24,7 +25,7 @@ class DatasourceAPIMCommand extends Command {
 			if (datasource === 'oracle')
 				await Oracle.configure(this, 'am', { container, generate });
 			if (datasource === 'postgres')
-				await Postgres.configure(this, 'am', { container, generate });
+				await Postgres.configure(this, 'am', { container, generate, replace, setup });
 		} else {
 			this._help();
 		}
