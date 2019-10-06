@@ -31,6 +31,13 @@ let _confs = {
 			},
 		},
 	},
+	am: {
+		setup: [
+			'apimgtdb',
+			'userdb',
+			'regdb',
+		],
+	},
 };
 
 let pMysql = 'mysql.sql';
@@ -60,7 +67,10 @@ A Docker container has been created for MySQL datasource : ${chance}`);
 					container.start().then(() => {
 						if (opts.generate) {
 							cli.action.start('executing database scripts');
-							executeMySQLScripts(ocli, product, paths);
+							if (opts.setup)
+								executeSetupMySQLScripts(ocli, product, paths);
+							else
+								executeMySQLScripts(ocli, product, paths);
 						}
 					});
 				});
@@ -72,6 +82,7 @@ A Docker container has been created for MySQL datasource : ${chance}`);
 	});
 };
 
+// execute mysql scripts for replace datasource
 async function executeMySQLScripts(ocli, product, paths) {
 	let config = {
 		user: 'root',
@@ -145,6 +156,7 @@ async function executeMySQLScripts(ocli, product, paths) {
 	}, 20000);
 }
 
+// read mysql sql scripts from file system
 async function readScripts(sp, db, product, paths) {
 	let scripts = [];
 
@@ -165,4 +177,81 @@ async function readScripts(sp, db, product, paths) {
 	}
 
 	return scripts.join('');
+}
+
+// execute postgres scripts for api manager setup datasource
+async function executeSetupMySQLScripts(ocli, product, paths) {
+	let config = {
+		user: 'root',
+		password: 'hydrogen',
+		host: 'localhost',
+		port: '3306',
+		insecureAuth: true,
+		multipleStatements: true,
+	};
+
+	setTimeout(() => {
+		if (product === 'am')
+			traverseAMDatasource(ocli, config, paths, 0);
+	}, 20000);
+}
+
+// function to traverse through multiple different datasource configurations
+async function traverseAMDatasource(ocli, config, paths, count) {
+	if (count < _confs.am.setup.length) {
+		cli.action.stop();
+		let script = await readAMSetupScripts('mysql', pMysql, paths);
+		cli.action.start(`creating and executing scripts for ${_confs.am.setup[count]}`);
+
+		let client = Client.createConnection(config);
+		client.connect(err => {
+			if (err) {
+				ocli.log('Something went wrong while connecting to MySQL');
+				return logger.error(err);
+			}
+			client.query(`create database ${_confs.am.setup[count]} charset latin1 collate latin1_swedish_ci;`, (err, res) => {
+				if (err) {
+					ocli.log('Something went wrong while creating database');
+					return logger.error(err);
+				}
+				config.database = _confs.am.setup[count];
+				const subclient = Client.createConnection(config);
+
+				subclient.query(script[_confs.am.setup[count]], (err, res) => {
+					if (err) {
+						ocli.log('Something went wrong while executing DB scripts');
+						logger.error(err);
+					}
+
+					subclient.end();
+					client.end();
+					cli.action.stop();
+				});
+			});
+
+			client.query(`grant all on ${_confs.am.setup[count]}.* to '${'mysql'}'@'%'; FLUSH PRIVILEGES;`, err => {
+				if (err)
+					return logger.error(err);
+
+				traverseAMDatasource(ocli, config, paths, ++count);
+			});
+		});
+	}
+}
+
+// read postgres sql scripts of api manager from file system
+async function readAMSetupScripts(sp, db, paths) {
+	let scripts = [];
+
+	scripts[0] = "SET SQL_MODE='ALLOW_INVALID_DATES';";
+	scripts[1] = fs.readFileSync(path.join(process.cwd(), paths.am.pApimgt, db)).toString();
+	scripts[2] = fs.readFileSync(path.join(process.cwd(), paths.am.pDBScripts, db)).toString();
+
+	let script = {
+		apimgtdb: scripts[0] + scripts[1],
+		userdb: scripts[0] + scripts[2],
+		regdb: scripts[0] + scripts[2],
+	};
+
+	return script;
 }

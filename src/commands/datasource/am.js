@@ -21,7 +21,7 @@ class DatasourceAPIMCommand extends Command {
 			if (datasource === 'mssql')
 				await MSSQL.configure(this, 'am', { container, generate });
 			if (datasource === 'mysql')
-				await MySQL.configure(this, 'am', { container, generate });
+				await MySQL.configure(this, 'am', { container, generate, replace, setup });
 			if (datasource === 'oracle')
 				await Oracle.configure(this, 'am', { container, generate });
 			if (datasource === 'postgres')
