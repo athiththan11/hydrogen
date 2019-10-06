@@ -27,6 +27,13 @@ let _confs = {
 			},
 		},
 	},
+	am: {
+		setup: [
+			'apimgtdb',
+			'userdb',
+			'regdb',
+		],
+	},
 };
 
 let pPostgres = 'postgresql.sql';
@@ -55,7 +62,10 @@ A Docker container has been created for Postgres datasource : ${chance}`);
 					container.start().then(() => {
 						if (opts.generate) {
 							cli.action.start('executing database scripts');
-							executePostgresScripts(ocli, product, paths);
+							if (opts.setup)
+								executeSetupPostgresScripts(ocli, product, paths);
+							else
+								executePostgresScripts(ocli, product, paths);
 						}
 					});
 				});
@@ -67,6 +77,7 @@ A Docker container has been created for Postgres datasource : ${chance}`);
 	});
 };
 
+// execute postgres scripts for replace datasource
 async function executePostgresScripts(ocli, product, paths) {
 	let config = {
 		user: 'postgres',
@@ -119,6 +130,7 @@ async function executePostgresScripts(ocli, product, paths) {
 	}, 5000);
 }
 
+// read postgres sql scripts from file system
 async function readScripts(sp, db, product, paths) {
 	let scripts = [];
 
@@ -137,4 +149,62 @@ async function readScripts(sp, db, product, paths) {
 	}
 
 	return scripts.join('\n');
+}
+
+// execute postgres scripts for api manager setup datasource
+async function executeSetupPostgresScripts(ocli, product, paths) {
+	let config = {
+		user: 'postgres',
+		password: 'hydrogen',
+		host: 'localhost',
+		port: '5432',
+	};
+
+	setTimeout(() => {
+		if (product === 'am')
+			traverseAMDatasource(ocli, config, paths, 0);
+	}, 5000);
+}
+
+// function to traverse through multiple different datasource configurations
+async function traverseAMDatasource(ocli, config, paths, count) {
+	if (count < _confs.am.setup.length) {
+		cli.action.stop();
+		let script = await readAMSetupScripts('postgre', pPostgres, paths);
+		cli.action.start(`creating and executing scripts for ${_confs.am.setup[count]}`);
+		createdb(config, _confs.am.setup[count]).then(() => {
+			config.database = _confs.am.setup[count];
+			const client = new Client(config);
+			client.connect();
+
+			client.query(script[_confs.am.setup[count]], (err, res) => {
+				if (err) {
+					ocli.log('Something went wrong while executing DB scripts');
+					logger.error(err);
+				}
+
+				client.end();
+			});
+		}).then(() => {
+			cli.action.stop();
+		}).then(() => {
+			traverseAMDatasource(ocli, config, paths, ++count);
+		});
+	}
+}
+
+// read postgres sql scripts of api manager from file system
+async function readAMSetupScripts(sp, db, paths) {
+	let scripts = [];
+
+	scripts[0] = fs.readFileSync(path.join(process.cwd(), paths.am.pApimgt, db)).toString();
+	scripts[1] = fs.readFileSync(path.join(process.cwd(), paths.am.pDBScripts, db)).toString();
+
+	let script = {
+		apimgtdb: scripts[0],
+		userdb: scripts[1],
+		regdb: scripts[1],
+	};
+
+	return script;
 }

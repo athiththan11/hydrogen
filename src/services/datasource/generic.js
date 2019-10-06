@@ -300,3 +300,5 @@ function buildDriverDoc(ocli, database) {
 		// });
 	}
 }
+
+module.exports = { buildDriverDoc };

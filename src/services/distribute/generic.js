@@ -1601,6 +1601,29 @@ Start the configured nodes in the following order
 
 // #endregion
 
+// #region api manager datasource
+
+async function configureAMDatasource(ocli, args) {
+	cli.action.start('altering master-datasources.xml');
+	await alterMDatasourceAM(_p, args.am).then(() => {
+		alterMDatasourceUM(_p, args.um);
+	}).then(() => {
+		alterMDatasourceREG(_p, args.reg);
+	}).then(() => {
+		cli.action.stop();
+	}).then(() => {
+		cli.action.start('altering user-mgt.xml');
+	}).then(() => {
+		alterUserMgt(_p);
+	}).then(() => {
+		cli.action.stop();
+	});
+
+	// alterRegistry(_p, args.reg);
+}
+
+// #endregion
+
 // execute profile optimization for distributed setup
 function execProfileOptimization(p, profile, opts) {
 	exec(`sh ${path.join(p, 'bin/profileSetup.sh')} -Dprofile=${profile}`, opts);
@@ -1625,3 +1648,5 @@ async function configurePortOffset(p, count) {
 			fs.writeFileSync(path.join(p, pCarbon), _altered, _utf8);
 		});
 }
+
+module.exports = { configureAMDatasource };
