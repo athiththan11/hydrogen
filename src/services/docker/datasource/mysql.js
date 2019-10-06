@@ -42,7 +42,7 @@ let _confs = {
 
 let pMysql = 'mysql.sql';
 
-// build postgres container
+// build mysql container
 exports.buildMySQLContainer = async function (ocli, paths, product, opts) {
 	let instance = new Docker();
 	let chance = new Chance().animal().replace(/[^a-zA-Z]/g, '');
@@ -179,7 +179,7 @@ async function readScripts(sp, db, product, paths) {
 	return scripts.join('');
 }
 
-// execute postgres scripts for api manager setup datasource
+// execute mysql scripts for api manager setup datasource
 async function executeSetupMySQLScripts(ocli, product, paths) {
 	let config = {
 		user: 'root',
@@ -239,7 +239,7 @@ async function traverseAMDatasource(ocli, config, paths, count) {
 	}
 }
 
-// read postgres sql scripts of api manager from file system
+// read mysql sql scripts of api manager from file system
 async function readAMSetupScripts(sp, db, paths) {
 	let scripts = [];
 
