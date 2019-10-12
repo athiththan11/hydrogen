@@ -73,7 +73,7 @@ exports.configure = async function (ocli, args) {
 	if (args.distributed)
 		await configureDistributedDeployment(ocli);
 	if (args['is-km'])
-		await configureISasKM(ocli);
+		await configureISasKM(ocli, args.args);
 	if (args['multiple-gateway'])
 		await configureMultipleGateway(ocli);
 };
@@ -1295,7 +1295,7 @@ Start the distributed nodes in the following order
 
 // #region is as km configurations
 
-async function configureISasKM(ocli) {
+async function configureISasKM(ocli, args) {
 	// clean .DS_Store in mac filesystem
 	if (fs.existsSync(path.join(_p, '.DS_Store'))) {
 		fs.removeSync(path.join(_p, '.DS_Store'));
@@ -1304,26 +1304,26 @@ async function configureISasKM(ocli) {
 	let sync = fs.readdirSync(_p);
 	if (sync.length === 2) {
 		let count = 0;
-		traverseISasKM(ocli, sync, count);
+		traverseISasKM(ocli, args, sync, count);
 	}
 }
 
-function traverseISasKM(ocli, sync, count) {
+function traverseISasKM(ocli, args, sync, count) {
 	if (count < _c['is-km'].length) {
 		let pack = sync.shift();
 		cli.action.start(`configuring ${pack}`);
 		if (pack.startsWith('wso2am')) {
-			configureISKMAIO(path.join(_p, pack)).then(() => {
+			configureISKMAIO(path.join(_p, pack), args).then(() => {
 				cli.action.stop();
 			}).then(() => {
-				traverseISasKM(ocli, sync, ++count);
+				traverseISasKM(ocli, args, sync, ++count);
 			});
 		}
 		if (pack.startsWith('wso2is-km')) {
-			configureISKM(path.join(_p, pack)).then(() => {
+			configureISKM(path.join(_p, pack), args).then(() => {
 				cli.action.stop();
 			}).then(() => {
-				traverseISasKM(ocli, sync, ++count);
+				traverseISasKM(ocli, args, sync, ++count);
 			});
 		}
 	} else {
@@ -1332,25 +1332,7 @@ function traverseISasKM(ocli, sync, count) {
 }
 
 // configure is-km node in is-km setup
-async function configureISKM(p) {
-	let args = {
-		_connectionUrl:
-			'jdbc:mysql://localhost:3306/apimgtdb?autoReconnect=true&useSSL=false',
-		_defaultAutoCommit: 'false',
-		_description: 'The datasource used for the API Manager database',
-		_driver: 'com.mysql.jdbc.Driver',
-		_jndiName: 'jdbc/WSO2AM_DB',
-		_maxActive: '80',
-		_maxWait: '60000',
-		_minIdle: '5',
-		_name: 'WSO2AM_DB',
-		_password: 'hydrogen',
-		_testOnBorrow: 'true',
-		_username: 'mysql',
-		_validationInterval: '30000',
-		_validationQuery: 'SELECT 1',
-	};
-
+async function configureISKM(p, args) {
 	await parseXML(null, path.join(p, pApiManager)).then(apim => {
 		let doc = new libxmljs.Document(apim);
 
@@ -1384,48 +1366,20 @@ async function configureISKM(p) {
 	}).then(() => {
 		configurePortOffset(p, 1);
 	}).then(() => {
-		alterMDatasourceAM(p, args);
+		alterMDatasourceAM(p, args.am);
 	}).then(() => {
-		args._connectionUrl = 'jdbc:mysql://localhost:3306/userdb?autoReconnect=true&useSSL=false';
-		args._description = 'The datasource used by user manager';
-		args._jndiName = 'jdbc/WSO2UM_DB';
-		args._name = 'WSO2UM_DB';
-
-		alterMDatasourceUM(p, args);
+		alterMDatasourceUM(p, args.um);
 	}).then(() => {
-		args._connectionUrl = 'jdbc:mysql://localhost:3306/regdb?autoReconnect=true&useSSL=false';
-		args._description = 'The datasource used by the registry';
-		args._jndiName = 'jdbc/WSO2REG_DB';
-		args._name = 'WSO2REG_DB';
-
-		alterMDatasourceREG(p, args);
+		alterMDatasourceREG(p, args.reg);
 	}).then(() => {
-		alterRegistry(p, args);
+		alterRegistry(p, args.reg);
 	}).then(() => {
 		alterUserMgt(p, true);
 	});
 }
 
 // configure all-in-one api manager node in is-km setup
-async function configureISKMAIO(p) {
-	let args = {
-		_connectionUrl:
-			'jdbc:mysql://localhost:3306/apimgtdb?autoReconnect=true&useSSL=false',
-		_defaultAutoCommit: 'false',
-		_description: 'The datasource used for the API Manager database',
-		_driver: 'com.mysql.jdbc.Driver',
-		_jndiName: 'jdbc/WSO2AM_DB',
-		_maxActive: '80',
-		_maxWait: '60000',
-		_minIdle: '5',
-		_name: 'WSO2AM_DB',
-		_password: 'hydrogen',
-		_testOnBorrow: 'true',
-		_username: 'mysql',
-		_validationInterval: '30000',
-		_validationQuery: 'SELECT 1',
-	};
-
+async function configureISKMAIO(p, args) {
 	await parseXML(null, path.join(p, pApiManager)).then(apim => {
 		let doc = new libxmljs.Document(apim);
 
@@ -1476,23 +1430,13 @@ async function configureISKMAIO(p) {
 
 		fs.writeFileSync(path.join(p, pApiManager), prettify(_altered, { indent: 4 }) + '\n', _utf8);
 	}).then(() => {
-		alterMDatasourceAM(p, args);
+		alterMDatasourceAM(p, args.am);
 	}).then(() => {
-		args._connectionUrl = 'jdbc:mysql://localhost:3306/userdb?autoReconnect=true&useSSL=false';
-		args._description = 'The datasource used by user manager';
-		args._jndiName = 'jdbc/WSO2UM_DB';
-		args._name = 'WSO2UM_DB';
-
-		alterMDatasourceUM(p, args);
+		alterMDatasourceUM(p, args.um);
 	}).then(() => {
-		args._connectionUrl = 'jdbc:mysql://localhost:3306/regdb?autoReconnect=true&useSSL=false';
-		args._description = 'The datasource used by the registry';
-		args._jndiName = 'jdbc/WSO2REG_DB';
-		args._name = 'WSO2REG_DB';
-
-		alterMDatasourceREG(p, args);
+		alterMDatasourceREG(p, args.reg);
 	}).then(() => {
-		alterRegistry(p, args);
+		alterRegistry(p, args.reg);
 	}).then(() => {
 		alterUserMgt(p);
 	});
