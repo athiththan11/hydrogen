@@ -216,9 +216,12 @@ USAGE
   $ hydrogen distribute:am
 
 OPTIONS
-  -D, --distributed       5 node distributed setup
-  -I, --is-km             IS as Keymanager setup
-  -M, --multiple-gateway  publish through multiple gateway
+  -D, --distributed                      5 node distributed setup
+  -I, --is-km                            IS as Keymanager setup
+  -M, --multiple-gateway                 publish through multiple gateway
+  -c, --container                        create docker container for datasource
+  -d, --datasource=mssql|mysql|postgres  (required) datasource type
+  -g, --generate                         generate database and tables in run-time created container
 
 DESCRIPTION
   ...
@@ -233,6 +236,10 @@ EXAMPLES
   $ hydrogen distribute:am -D -v 2.6
   Configure APIM for publish through multiple-gateway setup
   $ hydrogen distribute:am -M -v 2.6
+  Configure APIM with IS-KM setup with Postgres datasource
+  $ hydrogen distribute:am --is-km -v 2.6 --datasource postgres
+  Configure APIM with IS-KM setup and generate container for database
+  $ hydrogen distribute:am --is-km -v 2.6 --datasource postgres --container --generate
 ```
 
 `distribute:am` commands are used to configure the WSO2 API Manager packs for distributed deployment setups.
@@ -342,7 +349,7 @@ setups, and later will be expanded to cover other supported deployment patterns 
 
 	The above command will create a new folder named `distributed` and places all configured nodes within it.
 
-* Need to configure WSO2 API Manager v2.6 with IS-KM v5.7
+* Need to configure WSO2 API Manager v2.6 with IS-KM v5.7 with `Postgres`
   * Download and extract both WSO2 API Manager v2.6 and IS-KM v5.7 inside a new directory (only the extracted WSO2 APIM pack & the IS-KM pack)
 
 	```tree
@@ -356,8 +363,27 @@ setups, and later will be expanded to cover other supported deployment patterns 
 
 	```shell
 	# inside MyNewFolder
-	hydrogen distribute:am --is-km --version 2.6
+	hydrogen distribute:am --is-km --version 2.6 --datasource postgres
 	```
+
+* Need to configure WSO2 API Manager v2.6 with IS-KM v5.7 and also to generate a Docker container for `Postgres` datasource
+
+  * Start the Docker service in your environment (if you don't have Docker installed, install Docker before executing the command to work without any errors)
+  * Download and extract both WSO2 API Manager v2.6 and IS-KM v5.7 inside a new directory (only the extracted WSO2 APIM pack & the IS-KM pack)
+     
+     ```tree
+     - MyNewFolder
+         |- wso2am-2.6.0
+         |- wso2is-km-5.7.0
+     ```
+
+  * Open a terminal and navigate to the parent folder of the extracted packs
+  * Execute the following
+
+      ```shell
+      # inside MyNewFolder
+      hydrogen distribute:am --is-km --version 2.6 --datasource postgres --container --generate
+      ```
 
 <br />
 
