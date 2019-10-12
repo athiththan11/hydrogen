@@ -3,6 +3,32 @@ const { configureAMDatasource } = require('../distribute/generic');
 const { buildContainer } = require('../docker/datasource/generic');
 
 exports.configure = async function (ocli, product, opts) {
+	let args = getConfigs(product, opts);
+
+	if (opts.setup && product === 'am') {
+		let confs = getConfigs(product, opts);
+
+		// configure api manager with amdb, userdb, and regdb configurations
+		configureAMDatasource(ocli, confs).then(() => {
+			ocli.log('\n');
+			buildDriverDoc(ocli, 'mssql');
+		}).then(() => {
+			if (product === 'am' && opts.container) {
+				ocli.log('\n');
+				buildContainer(ocli, 'mssql', product, opts);
+			}
+		});
+	}
+
+	if (opts.replace)
+		configureDatasource(ocli, args, product, 'mssql').then(() => {
+			if ((product === 'is' || product === 'am') && opts.container) {
+				buildContainer(ocli, 'mssql', product, opts);
+			}
+		});
+};
+
+function getConfigs(product, opts) {
 	let args = {
 		_connectionUrl: 'jdbc:sqlserver://localhost:1433;databaseName=wso2mssql;SendStringParametersAsUnicode=false',
 		_defaultAutoCommit: 'false',
@@ -29,7 +55,7 @@ exports.configure = async function (ocli, product, opts) {
 	}
 
 	if (opts.setup && product === 'am') {
-		let confs = { };
+		let confs = {};
 		args._connectionUrl = 'jdbc:sqlserver://localhost:1433;databaseName=apimgtdb;SendStringParametersAsUnicode=false';
 		confs.am = { ...args };
 
@@ -45,22 +71,10 @@ exports.configure = async function (ocli, product, opts) {
 		args._name = 'WSO2REG_DB';
 		confs.reg = { ...args };
 
-		// configure api manager with amdb, userdb, and regdb configurations
-		configureAMDatasource(ocli, confs).then(() => {
-			ocli.log('\n');
-			buildDriverDoc(ocli, 'mssql');
-		}).then(() => {
-			if (product === 'am' && opts.container) {
-				ocli.log('\n');
-				buildContainer(ocli, 'mssql', product, opts);
-			}
-		});
+		return confs;
 	}
 
-	if (opts.replace)
-		configureDatasource(ocli, args, product, 'mssql').then(() => {
-			if ((product === 'is' || product === 'am') && opts.container) {
-				buildContainer(ocli, 'mssql', product, opts);
-			}
-		});
-};
+	return args;
+}
+
+exports.getConfigs = getConfigs;

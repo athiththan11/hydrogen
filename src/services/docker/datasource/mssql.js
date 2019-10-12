@@ -1,4 +1,4 @@
-const fs = require('fs');
+const fs = require('fs-extra');
 const path = require('path');
 const Docker = require('dockerode');
 const Chance = require('chance');
@@ -65,7 +65,7 @@ A Docker container has been created for MSSQL datasource : ${chance}`);
 						if (opts.generate) {
 							cli.action.start('executing database scripts');
 							if (opts.setup)
-								executeSetupMSSQLScripts(ocli, product, paths);
+								executeSetupMSSQLScripts(ocli, product, paths, opts);
 							else
 								executeMSSQLScripts(ocli, product, paths);
 						}
@@ -181,7 +181,7 @@ async function readScripts(sp, db, product, paths) {
 }
 
 // execute mssql scripts for api manager setup datasource
-async function executeSetupMSSQLScripts(ocli, product, paths) {
+async function executeSetupMSSQLScripts(ocli, product, paths, opts) {
 	let config = {
 		user: 'sa',
 		password: 'Hydr0g@n',
@@ -190,15 +190,16 @@ async function executeSetupMSSQLScripts(ocli, product, paths) {
 
 	setTimeout(() => {
 		if (product === 'am')
-			traverseAMDatasource(ocli, config, paths, 0);
+			traverseAMDatasource(ocli, config, paths, opts, 0);
 	}, 10000);
 }
 
 // function to traverse through multiple different datasource configurations
-async function traverseAMDatasource(ocli, config, paths, count) {
+// eslint-disable-next-line max-params
+async function traverseAMDatasource(ocli, config, paths, opts, count) {
 	if (count < _confs.am.setup.length) {
 		cli.action.stop();
-		let script = await readAMSetupScripts('mssql', pMssql, paths);
+		let script = await readAMSetupScripts('mssql', pMssql, opts, paths);
 		cli.action.start(`creating and executing scripts for ${_confs.am.setup[count]}`);
 
 		Client.connect(config, err => {
@@ -230,7 +231,7 @@ async function traverseAMDatasource(ocli, config, paths, count) {
 
 						Client.close();
 						cli.action.stop();
-						traverseAMDatasource(ocli, config, paths, ++count);
+						traverseAMDatasource(ocli, config, paths, opts, ++count);
 					});
 				});
 			});
@@ -239,11 +240,29 @@ async function traverseAMDatasource(ocli, config, paths, count) {
 }
 
 // read mssql sql scripts of api manager from file system
-async function readAMSetupScripts(sp, db, paths) {
+async function readAMSetupScripts(sp, db, opts, paths) {
 	let scripts = [];
 
-	scripts[0] = fs.readFileSync(path.join(process.cwd(), paths.am.pApimgt, db)).toString();
-	scripts[1] = fs.readFileSync(path.join(process.cwd(), paths.am.pDBScripts, db)).toString();
+	if (!opts['is-km']) {
+		scripts[0] = fs.readFileSync(path.join(process.cwd(), paths.am.pApimgt, db)).toString();
+		scripts[1] = fs.readFileSync(path.join(process.cwd(), paths.am.pDBScripts, db)).toString();
+	}
+
+	if (opts['is-km']) {
+		if (fs.existsSync(path.join(process.cwd(), '.DS_Store'))) {
+			fs.removeSync(path.join(process.cwd(), '.DS_Store'));
+		}
+
+		let dir = fs.readdirSync(process.cwd());
+		while (dir.length >= 0) {
+			let pack = dir.shift();
+			if (pack.startsWith('wso2am')) {
+				scripts[0] = fs.readFileSync(path.join(process.cwd(), pack, paths.am.pApimgt, db)).toString();
+				scripts[1] = fs.readFileSync(path.join(process.cwd(), pack, paths.am.pDBScripts, db)).toString();
+				break;
+			}
+		}
+	}
 
 	let script = {
 		apimgtdb: scripts[0],
