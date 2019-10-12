@@ -1,4 +1,4 @@
-const fs = require('fs');
+const fs = require('fs-extra');
 const path = require('path');
 const Docker = require('dockerode');
 const Chance = require('chance');
@@ -63,7 +63,7 @@ A Docker container has been created for Postgres datasource : ${chance}`);
 						if (opts.generate) {
 							cli.action.start('executing database scripts');
 							if (opts.setup)
-								executeSetupPostgresScripts(ocli, product, paths);
+								executeSetupPostgresScripts(ocli, product, paths, opts);
 							else
 								executePostgresScripts(ocli, product, paths);
 						}
@@ -152,7 +152,7 @@ async function readScripts(sp, db, product, paths) {
 }
 
 // execute postgres scripts for api manager setup datasource
-async function executeSetupPostgresScripts(ocli, product, paths) {
+async function executeSetupPostgresScripts(ocli, product, paths, opts) {
 	let config = {
 		user: 'postgres',
 		password: 'hydrogen',
@@ -162,15 +162,16 @@ async function executeSetupPostgresScripts(ocli, product, paths) {
 
 	setTimeout(() => {
 		if (product === 'am')
-			traverseAMDatasource(ocli, config, paths, 0);
+			traverseAMDatasource(ocli, config, paths, opts, 0);
 	}, 5000);
 }
 
 // function to traverse through multiple different datasource configurations
-async function traverseAMDatasource(ocli, config, paths, count) {
+// eslint-disable-next-line max-params
+async function traverseAMDatasource(ocli, config, paths, opts, count) {
 	if (count < _confs.am.setup.length) {
 		cli.action.stop();
-		let script = await readAMSetupScripts('postgre', pPostgres, paths);
+		let script = await readAMSetupScripts('postgre', pPostgres, opts, paths);
 		cli.action.start(`creating and executing scripts for ${_confs.am.setup[count]}`);
 		createdb(config, _confs.am.setup[count]).then(() => {
 			config.database = _confs.am.setup[count];
@@ -188,17 +189,35 @@ async function traverseAMDatasource(ocli, config, paths, count) {
 		}).then(() => {
 			cli.action.stop();
 		}).then(() => {
-			traverseAMDatasource(ocli, config, paths, ++count);
+			traverseAMDatasource(ocli, config, paths, opts, ++count);
 		});
 	}
 }
 
 // read postgres sql scripts of api manager from file system
-async function readAMSetupScripts(sp, db, paths) {
+async function readAMSetupScripts(sp, db, opts, paths) {
 	let scripts = [];
 
-	scripts[0] = fs.readFileSync(path.join(process.cwd(), paths.am.pApimgt, db)).toString();
-	scripts[1] = fs.readFileSync(path.join(process.cwd(), paths.am.pDBScripts, db)).toString();
+	if (!opts['is-km']) {
+		scripts[0] = fs.readFileSync(path.join(process.cwd(), paths.am.pApimgt, db)).toString();
+		scripts[1] = fs.readFileSync(path.join(process.cwd(), paths.am.pDBScripts, db)).toString();
+	}
+
+	if (opts['is-km']) {
+		if (fs.existsSync(path.join(process.cwd(), '.DS_Store'))) {
+			fs.removeSync(path.join(process.cwd(), '.DS_Store'));
+		}
+
+		let dir = fs.readdirSync(process.cwd());
+		while (dir.length >= 0) {
+			let pack = dir.shift();
+			if (pack.startsWith('wso2am')) {
+				scripts[0] = fs.readFileSync(path.join(process.cwd(), pack, paths.am.pApimgt, db)).toString();
+				scripts[1] = fs.readFileSync(path.join(process.cwd(), pack, paths.am.pDBScripts, db)).toString();
+				break;
+			}
+		}
+	}
 
 	let script = {
 		apimgtdb: scripts[0],

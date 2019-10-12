@@ -3,6 +3,32 @@ const { configureAMDatasource } = require('../distribute/generic');
 const { buildContainer } = require('../docker/datasource/generic');
 
 exports.configure = async function (ocli, product, opts) {
+	let args = getConfigs(product, opts);
+
+	if (opts.setup && product === 'am') {
+		let confs = getConfigs(product, opts);
+
+		// configure api manager with amdb, userdb, and regdb configurations
+		configureAMDatasource(ocli, confs).then(() => {
+			ocli.log('\n');
+			buildDriverDoc(ocli, 'postgres');
+		}).then(() => {
+			if (product === 'am' && opts.container) {
+				ocli.log('\n');
+				buildContainer(ocli, 'postgres', product, opts);
+			}
+		});
+	}
+
+	if (opts.replace)
+		configureDatasource(ocli, args, product, 'postgres').then(() => {
+			if ((product === 'is' || product === 'am') && opts.container) {
+				buildContainer(ocli, 'postgres', product, opts);
+			}
+		});
+};
+
+function getConfigs(product, opts) {
 	let args = {
 		_connectionUrl: 'jdbc:postgresql://localhost:5432/wso2postgres',
 		_defaultAutoCommit: 'true',
@@ -29,7 +55,7 @@ exports.configure = async function (ocli, product, opts) {
 	}
 
 	if (opts.setup && product === 'am') {
-		let confs = { };
+		let confs = {};
 		args._connectionUrl = 'jdbc:postgresql://localhost:5432/apimgtdb';
 		confs.am = { ...args };
 
@@ -45,22 +71,10 @@ exports.configure = async function (ocli, product, opts) {
 		args._name = 'WSO2REG_DB';
 		confs.reg = { ...args };
 
-		// configure api manager with amdb, userdb, and regdb configurations
-		configureAMDatasource(ocli, confs).then(() => {
-			ocli.log('\n');
-			buildDriverDoc(ocli, 'postgres');
-		}).then(() => {
-			if (product === 'am' && opts.container) {
-				ocli.log('\n');
-				buildContainer(ocli, 'postgres', product, opts);
-			}
-		});
+		return confs;
 	}
 
-	if (opts.replace)
-		configureDatasource(ocli, args, product, 'postgres').then(() => {
-			if ((product === 'is' || product === 'am') && opts.container) {
-				buildContainer(ocli, 'postgres', product, opts);
-			}
-		});
-};
+	return args;
+}
+
+exports.getConfigs = getConfigs;
