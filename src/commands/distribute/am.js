@@ -1,7 +1,9 @@
 const { Command, flags } = require('@oclif/command');
 
 const { configure } = require('../../services/distribute/generic');
+
 const ISKM = require('../../services/distribute/am/is-km');
+const Distributed = require('../../services/distribute/am/distributed');
 
 class DistributeAMCommand extends Command {
 	async run() {
@@ -19,7 +21,7 @@ class DistributeAMCommand extends Command {
 		}
 		if (flags.distributed) {
 			this.log(`${message}for distributed setup`);
-			await configure(this, { distributed: true });
+			await Distributed.configure(this, { container, datasource, generate });
 		}
 		if (flags['is-km']) {
 			this.log(`${message}with IS as Keymanager`);

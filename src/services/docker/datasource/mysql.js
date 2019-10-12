@@ -244,13 +244,13 @@ async function traverseAMDatasource(ocli, config, paths, opts, count) {
 async function readAMSetupScripts(sp, db, opts, paths) {
 	let scripts = [];
 
-	if (!opts['is-km']) {
+	if (!opts['is-km'] && !opts.distributed) {
 		scripts[0] = "SET SQL_MODE='ALLOW_INVALID_DATES';";
 		scripts[1] = fs.readFileSync(path.join(process.cwd(), paths.am.pApimgt, db)).toString();
 		scripts[2] = fs.readFileSync(path.join(process.cwd(), paths.am.pDBScripts, db)).toString();
 	}
 
-	if (opts['is-km']) {
+	if (opts['is-km'] || opts.distributed) {
 		if (fs.existsSync(path.join(process.cwd(), '.DS_Store'))) {
 			fs.removeSync(path.join(process.cwd(), '.DS_Store'));
 		}
