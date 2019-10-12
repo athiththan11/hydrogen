@@ -3,6 +3,32 @@ const { configureAMDatasource } = require('../distribute/generic');
 const { buildContainer } = require('../docker/datasource/generic');
 
 exports.configure = async function (ocli, product, opts) {
+	let args = getConfigs(product, opts);
+
+	if (opts.setup && product === 'am') {
+		let confs = getConfigs(product, opts);
+
+		// configure api manager with amdb, userdb, and regdb configurations
+		configureAMDatasource(ocli, confs).then(() => {
+			ocli.log('\n');
+			buildDriverDoc(ocli, 'mysql');
+		}).then(() => {
+			if (product === 'am' && opts.container) {
+				ocli.log('\n');
+				buildContainer(ocli, 'mysql', product, opts);
+			}
+		});
+	}
+
+	if (opts.replace)
+		configureDatasource(ocli, args, product, 'mysql').then(() => {
+			if ((product === 'is' || product === 'am') && opts.container) {
+				buildContainer(ocli, 'mysql', product, opts);
+			}
+		});
+};
+
+function getConfigs(product, opts) {
 	let args = {
 		_connectionUrl: 'jdbc:mysql://localhost:3306/wso2mysql?autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true',
 		_defaultAutoCommit: 'false',
@@ -28,7 +54,7 @@ exports.configure = async function (ocli, product, opts) {
 	}
 
 	if (opts.setup && product === 'am') {
-		let confs = { };
+		let confs = {};
 		args._connectionUrl = 'jdbc:mysql://localhost:3306/apimgtdb?autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true';
 		confs.am = { ...args };
 
@@ -44,22 +70,10 @@ exports.configure = async function (ocli, product, opts) {
 		args._name = 'WSO2REG_DB';
 		confs.reg = { ...args };
 
-		// configure api manager with amdb, userdb, and regdb configurations
-		configureAMDatasource(ocli, confs).then(() => {
-			ocli.log('\n');
-			buildDriverDoc(ocli, 'mysql');
-		}).then(() => {
-			if (product === 'am' && opts.container) {
-				ocli.log('\n');
-				buildContainer(ocli, 'mysql', product, opts);
-			}
-		});
+		return confs;
 	}
 
-	if (opts.replace)
-		configureDatasource(ocli, args, product, 'mysql').then(() => {
-			if ((product === 'is' || product === 'am') && opts.container) {
-				buildContainer(ocli, 'mysql', product, opts);
-			}
-		});
-};
+	return args;
+}
+
+exports.getConfigs = getConfigs;
