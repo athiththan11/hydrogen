@@ -86,22 +86,26 @@ exports.configure = async function (ocli, args) {
 // #region publish multiple gateway configurations
 
 async function configureMultipleGateway(ocli) {
-	// clean .DS_Store in mac filesystem
-	if (fs.existsSync(path.join(_p, '.DS_Store'))) {
-		fs.removeSync(path.join(_p, '.DS_Store'));
-	}
+	try {
+		// clean .DS_Store in mac filesystem
+		if (fs.existsSync(path.join(_p, '.DS_Store'))) {
+			fs.removeSync(path.join(_p, '.DS_Store'));
+		}
 
-	let sync = fs.readdirSync(_p);
-	if (sync.length === 1 && sync[0].startsWith('wso2')) {
-		let pDistributed = path.join(_p, _distributed);
+		let sync = fs.readdirSync(_p);
+		if (sync.length === 1 && sync[0].startsWith('wso2')) {
+			let pDistributed = path.join(_p, _distributed);
 
-		// create distributed folder
-		fs.mkdirSync(pDistributed);
+			// create distributed folder
+			fs.mkdirSync(pDistributed);
 
-		let source = path.join(_p, sync[0]);
-		let _count = 0;
+			let source = path.join(_p, sync[0]);
+			let _count = 0;
 
-		traverseMultipleGateway(ocli, sync[0], source, pDistributed, _count);
+			traverseMultipleGateway(ocli, sync[0], source, pDistributed, _count);
+		}
+	} catch (error) {
+		logger.error(error);
 	}
 }
 
@@ -128,60 +132,64 @@ function traverseMultipleGateway(ocli, pack, source, p, count) {
 
 // multiple-gateway all-in-one
 async function configureMGWAIO(p) {
-	await parseXML(null, path.join(p, pApiManager)).then(apim => {
-		let doc = new libxmljs.Document(apim);
+	try {
+		await parseXML(null, path.join(p, pApiManager)).then(apim => {
+			let doc = new libxmljs.Document(apim);
 
-		// environment node creation
-		let envProdNode = buildEnvironment(
-			doc,
-			'production',
-			'Production Gateway',
-			'Production Gateway Environment',
-			1
-		);
-		let envHybNode = buildEnvironment(
-			doc,
-			'hybrid',
-			'Production and Sandbox',
-			'Hybrid Gateway Environment',
-			2
-		);
+			// environment node creation
+			let envProdNode = buildEnvironment(
+				doc,
+				'production',
+				'Production Gateway',
+				'Production Gateway Environment',
+				1
+			);
+			let envHybNode = buildEnvironment(
+				doc,
+				'hybrid',
+				'Production and Sandbox',
+				'Hybrid Gateway Environment',
+				2
+			);
 
-		let defaultElement = apim.root()
-			.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]/*[local-name()="Environment"]')
-			.remove();
+			let defaultElement = apim.root()
+				.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]/*[local-name()="Environment"]')
+				.remove();
 
-		let alteredDefault = defaultElement.toString().split('\n');
-		let altered = '';
-		alteredDefault.forEach(a => {
-			if (a.includes('<!--')) {
-				altered += a + '\n';
-			} else {
-				altered += '<!-- ' + a.trim() + ' -->\n';
-			}
+			let alteredDefault = defaultElement.toString().split('\n');
+			let altered = '';
+			alteredDefault.forEach(a => {
+				if (a.includes('<!--')) {
+					altered += a + '\n';
+				} else {
+					altered += '<!-- ' + a.trim() + ' -->\n';
+				}
+			});
+
+			apim.root()
+				.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]')
+				.addChild(envProdNode).addChild(envHybNode);
+
+			let _altered = removeDeclaration(apim.toString());
+			let envsElement = _altered.substring(_altered.indexOf('<Environments>'), _altered.indexOf('</Environments>'));
+
+			envsElement = envsElement.substring(0, envsElement.indexOf('<Environment ')) +
+				altered +
+				`${_n}${_t}<!-- ${_comment} environments added -->\n${_t}` +
+				envsElement.substring(envsElement.indexOf('<Environment '), envsElement.lastIndexOf('<Environment ')) +
+				'\n\n' +
+				envsElement.substring(envsElement.lastIndexOf('<Environment '), envsElement.length);
+
+			_altered = _altered.substring(0, _altered.indexOf('<Environments>')) +
+				envsElement +
+				_n +
+				_altered.substring(_altered.indexOf('</Environments>'), _altered.length);
+
+			fs.writeFileSync(path.join(p, pApiManager), prettify(_altered, { indent: 4 }) + '\n', _utf8);
 		});
-
-		apim.root()
-			.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]')
-			.addChild(envProdNode).addChild(envHybNode);
-
-		let _altered = removeDeclaration(apim.toString());
-		let envsElement = _altered.substring(_altered.indexOf('<Environments>'), _altered.indexOf('</Environments>'));
-
-		envsElement = envsElement.substring(0, envsElement.indexOf('<Environment ')) +
-			altered +
-			`${_n}${_t}<!-- ${_comment} environments added -->\n${_t}` +
-			envsElement.substring(envsElement.indexOf('<Environment '), envsElement.lastIndexOf('<Environment ')) +
-			'\n\n' +
-			envsElement.substring(envsElement.lastIndexOf('<Environment '), envsElement.length);
-
-		_altered = _altered.substring(0, _altered.indexOf('<Environments>')) +
-			envsElement +
-			_n +
-			_altered.substring(_altered.indexOf('</Environments>'), _altered.length);
-
-		fs.writeFileSync(path.join(p, pApiManager), prettify(_altered, { indent: 4 }) + '\n', _utf8);
-	});
+	} catch (error) {
+		logger.error(error);
+	}
 }
 
 // eslint-disable-next-line max-params
@@ -204,70 +212,73 @@ function buildEnvironment(doc, type, name, description, c) {
 
 // multiple-gateway gateway
 async function configureMGW(p, count) {
-	await parseXML(null, path.join(p, pApiManager)).then(apim => {
-		let doc = new libxmljs.Document(apim);
+	try {
+		await parseXML(null, path.join(p, pApiManager)).then(apim => {
+			let doc = new libxmljs.Document(apim);
 
-		// ServerURL node creation
-		let serverUrlElement = new libxmljs.Element(doc, 'ServerURL', `https://localhost:${_p9443}/services/`);
+			// ServerURL node creation
+			let serverUrlElement = new libxmljs.Element(doc, 'ServerURL', `https://localhost:${_p9443}/services/`);
 
-		apim.root()
-			.get('//*[local-name()="AuthManager"]/*[local-name()="ServerURL"]')
-			.addNextSibling(serverUrlElement);
+			apim.root()
+				.get('//*[local-name()="AuthManager"]/*[local-name()="ServerURL"]')
+				.addNextSibling(serverUrlElement);
 
-		apim.root()
-			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="ServerURL"]')
-			.addNextSibling(serverUrlElement);
+			apim.root()
+				.get('//*[local-name()="APIKeyValidator"]/*[local-name()="ServerURL"]')
+				.addNextSibling(serverUrlElement);
 
-		// ThriftClientPort node creation
-		let thriftClientPortElement = new libxmljs.Element(doc, 'ThriftClientPort', '10397');
+			// ThriftClientPort node creation
+			let thriftClientPortElement = new libxmljs.Element(doc, 'ThriftClientPort', '10397');
 
-		apim.root()
-			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="ThriftClientConnectionTimeOut"]')
-			.addNextSibling(thriftClientPortElement);
+			apim.root()
+				.get('//*[local-name()="APIKeyValidator"]/*[local-name()="ThriftClientConnectionTimeOut"]')
+				.addNextSibling(thriftClientPortElement);
 
-		// EnableThriftServer node creation
-		let enableThriftServerElement = new libxmljs.Element(doc, 'EnableThriftServer', 'false');
+			// EnableThriftServer node creation
+			let enableThriftServerElement = new libxmljs.Element(doc, 'EnableThriftServer', 'false');
 
-		apim.root()
-			.get('//*[local-name()="APIKeyValidator"]/*[local-name()="EnableThriftServer"]')
-			.addNextSibling(enableThriftServerElement);
+			apim.root()
+				.get('//*[local-name()="APIKeyValidator"]/*[local-name()="EnableThriftServer"]')
+				.addNextSibling(enableThriftServerElement);
 
-		// RevokeAPIURL element
-		let revokeApiElement = new libxmljs.Element(doc, 'RevokeAPIURL', `https://localhost:${_p8243}/revoke`);
+			// RevokeAPIURL element
+			let revokeApiElement = new libxmljs.Element(doc, 'RevokeAPIURL', `https://localhost:${_p8243}/revoke`);
 
-		apim.root()
-			.get('//*[local-name()="OAuthConfigurations"]/*[local-name()="RevokeAPIURL"]')
-			.addNextSibling(revokeApiElement);
+			apim.root()
+				.get('//*[local-name()="OAuthConfigurations"]/*[local-name()="RevokeAPIURL"]')
+				.addNextSibling(revokeApiElement);
 
-		let altered = removeDeclaration(apim.toString());
-		let authManager = altered.substring(altered.indexOf('<AuthManager>'), altered.indexOf('</AuthManager>'));
-		let apiKeyValidator = altered.substring(altered.lastIndexOf('<APIKeyValidator>'), altered.lastIndexOf('</APIKeyValidator>'));
+			let altered = removeDeclaration(apim.toString());
+			let authManager = altered.substring(altered.indexOf('<AuthManager>'), altered.indexOf('</AuthManager>'));
+			let apiKeyValidator = altered.substring(altered.lastIndexOf('<APIKeyValidator>'), altered.lastIndexOf('</APIKeyValidator>'));
 
-		let firstAlter = alterElement(authManager, 'ServerURL', 'server url changed ');
-		let secondAlter = apiKeyValidator.substring(0, apiKeyValidator.indexOf('<ServerURL>')) +
-			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<ServerURL>'), apiKeyValidator.lastIndexOf('<ServerURL>'))) +
-			`${_t}<!-- ${_comment} server url has been changed -->\n${_t}` +
-			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<ServerURL>'), apiKeyValidator.indexOf('<ThriftClientPort>')) +
-			`${_n}` +
-			`${_t}<!-- ${_comment} thrift client port has been set -->\n${_t}` +
-			apiKeyValidator.substring(apiKeyValidator.indexOf('<ThriftClientPort>'), apiKeyValidator.indexOf('<EnableThriftServer>')) +
-			commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<EnableThriftServer>'), apiKeyValidator.lastIndexOf('<EnableThriftServer>'))) +
-			`${_t}<!-- ${_comment} thrift server has been disabled -->\n${_t}` +
-			apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<EnableThriftServer>'), apiKeyValidator.length);
+			let firstAlter = alterElement(authManager, 'ServerURL', 'server url changed ');
+			let secondAlter = apiKeyValidator.substring(0, apiKeyValidator.indexOf('<ServerURL>')) +
+				commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<ServerURL>'), apiKeyValidator.lastIndexOf('<ServerURL>'))) +
+				`${_t}<!-- ${_comment} server url has been changed -->\n${_t}` +
+				apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<ServerURL>'), apiKeyValidator.indexOf('<ThriftClientPort>')) +
+				`${_n}` +
+				`${_t}<!-- ${_comment} thrift client port has been set -->\n${_t}` +
+				apiKeyValidator.substring(apiKeyValidator.indexOf('<ThriftClientPort>'), apiKeyValidator.indexOf('<EnableThriftServer>')) +
+				commentElement(apiKeyValidator.substring(apiKeyValidator.indexOf('<EnableThriftServer>'), apiKeyValidator.lastIndexOf('<EnableThriftServer>'))) +
+				`${_t}<!-- ${_comment} thrift server has been disabled -->\n${_t}` +
+				apiKeyValidator.substring(apiKeyValidator.lastIndexOf('<EnableThriftServer>'), apiKeyValidator.length);
 
-		let _altered = altered.substring(0, altered.indexOf('<AuthManager>')) +
-			firstAlter +
-			altered.substring(altered.indexOf('</AuthManager>'), altered.lastIndexOf('<APIKeyValidator>')) +
-			secondAlter +
-			altered.substring(altered.lastIndexOf('</APIKeyValidator>'), altered.indexOf('<RevokeAPIURL>')) +
-			commentElement(altered.substring(altered.indexOf('<RevokeAPIURL>'), altered.lastIndexOf('<RevokeAPIURL>'))) +
-			`${_t}<!-- ${_comment} revoke api changed -->\n${_t}` +
-			altered.substring(altered.lastIndexOf('<RevokeAPIURL>'), altered.length);
+			let _altered = altered.substring(0, altered.indexOf('<AuthManager>')) +
+				firstAlter +
+				altered.substring(altered.indexOf('</AuthManager>'), altered.lastIndexOf('<APIKeyValidator>')) +
+				secondAlter +
+				altered.substring(altered.lastIndexOf('</APIKeyValidator>'), altered.indexOf('<RevokeAPIURL>')) +
+				commentElement(altered.substring(altered.indexOf('<RevokeAPIURL>'), altered.lastIndexOf('<RevokeAPIURL>'))) +
+				`${_t}<!-- ${_comment} revoke api changed -->\n${_t}` +
+				altered.substring(altered.lastIndexOf('<RevokeAPIURL>'), altered.length);
 
-		fs.writeFileSync(path.join(p, pApiManager), _altered, _utf8);
-	}).then(() => {
-		configurePortOffset(p, count);
-	});
+			fs.writeFileSync(path.join(p, pApiManager), _altered, _utf8);
+		});
+		await configurePortOffset(p, count);
+	} catch (error) {
+		logger.error(error);
+	}
 }
 
 // build docs and additional notes
@@ -1254,20 +1265,12 @@ async function traverseISasKM(ocli, args, sync, count) {
 	if (count < _c['is-km'].length) {
 		let pack = sync.shift();
 		cli.action.start(`configuring ${pack}`);
-		if (pack.startsWith('wso2am')) {
-			configureISKMAIO(path.join(_p, pack), args).then(() => {
-				cli.action.stop();
-			}).then(() => {
-				traverseISasKM(ocli, args, sync, ++count);
-			});
-		}
-		if (pack.startsWith('wso2is-km')) {
-			configureISKM(path.join(_p, pack), args).then(() => {
-				cli.action.stop();
-			}).then(() => {
-				traverseISasKM(ocli, args, sync, ++count);
-			});
-		}
+		if (pack.startsWith('wso2am'))
+			await configureISKMAIO(path.join(_p, pack), args);
+		if (pack.startsWith('wso2is-km'))
+			await configureISKM(path.join(_p, pack), args);
+		cli.action.stop();
+		await traverseISasKM(ocli, args, sync, ++count);
 	} else {
 		buildISKMDoc(ocli);
 	}
@@ -1275,49 +1278,50 @@ async function traverseISasKM(ocli, args, sync, count) {
 
 // configure is-km node in is-km setup
 async function configureISKM(p, args) {
-	await parseXML(null, path.join(p, pApiManager)).then(apim => {
-		let doc = new libxmljs.Document(apim);
+	try {
+		await parseXML(null, path.join(p, pApiManager)).then(apim => {
+			let doc = new libxmljs.Document(apim);
 
-		let serverUrlElement = new libxmljs.Element(doc, 'ServerURL', `https://localhost:${_p9443}/services/`);
+			let serverUrlElement = new libxmljs.Element(doc, 'ServerURL', `https://localhost:${_p9443}/services/`);
 
-		apim.root()
-			.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]/*[local-name()="Environment"]/*[local-name()="ServerURL"]')
-			.addNextSibling(serverUrlElement);
+			apim.root()
+				.get('//*[local-name()="APIGateway"]/*[local-name()="Environments"]/*[local-name()="Environment"]/*[local-name()="ServerURL"]')
+				.addNextSibling(serverUrlElement);
 
-		let revokeElement = new libxmljs.Element(doc, 'RevokeAPIURL', `https://localhost:${_p8243}/revoke`);
+			let revokeElement = new libxmljs.Element(doc, 'RevokeAPIURL', `https://localhost:${_p8243}/revoke`);
 
-		apim.root()
-			.get('//*[local-name()="OAuthConfigurations"]/*[local-name()="RevokeAPIURL"]')
-			.addNextSibling(revokeElement);
+			apim.root()
+				.get('//*[local-name()="OAuthConfigurations"]/*[local-name()="RevokeAPIURL"]')
+				.addNextSibling(revokeElement);
 
-		let altered = removeDeclaration(apim.toString());
+			let altered = removeDeclaration(apim.toString());
 
-		let environments = altered.substring(altered.indexOf('<Environments>'), altered.indexOf('</Environments>'));
-		let firstAlter = alterElement(environments, 'ServerURL', 'server url changed ');
+			let environments = altered.substring(altered.indexOf('<Environments>'), altered.indexOf('</Environments>'));
+			let firstAlter = alterElement(environments, 'ServerURL', 'server url changed ');
 
-		let oauthConfig = altered.substring(altered.indexOf('<OAuthConfigurations>'), altered.indexOf('</OAuthConfigurations>'));
-		let secondAlter = alterElement(oauthConfig, 'RevokeAPIURL', 'revoke api url added ');
+			let oauthConfig = altered.substring(altered.indexOf('<OAuthConfigurations>'), altered.indexOf('</OAuthConfigurations>'));
+			let secondAlter = alterElement(oauthConfig, 'RevokeAPIURL', 'revoke api url added ');
 
-		let _altered = altered.substring(0, altered.indexOf('<Environments>')) +
-			firstAlter +
-			altered.substring(altered.indexOf('</Environments>'), altered.indexOf('<OAuthConfigurations>')) +
-			secondAlter +
-			altered.substring(altered.indexOf('</OAuthConfigurations>'));
+			let _altered = altered.substring(0, altered.indexOf('<Environments>')) +
+				firstAlter +
+				altered.substring(altered.indexOf('</Environments>'), altered.indexOf('<OAuthConfigurations>')) +
+				secondAlter +
+				altered.substring(altered.indexOf('</OAuthConfigurations>'));
 
-		fs.writeFileSync(path.join(p, pApiManager), prettify(_altered, { indent: 4 }) + '\n', _utf8);
-	}).then(() => {
-		configurePortOffset(p, 1);
-	}).then(() => {
-		alterMDatasourceAM(p, args.am);
-	}).then(() => {
-		alterMDatasourceUM(p, args.um);
-	}).then(() => {
-		alterMDatasourceREG(p, args.reg);
-	}).then(() => {
-		alterRegistry(p, args.reg);
-	}).then(() => {
-		alterUserMgt(p, true);
-	});
+			fs.writeFileSync(path.join(p, pApiManager), prettify(_altered, { indent: 4 }) + '\n', _utf8);
+		});
+		await configurePortOffset(p, 1);
+		await alterMDatasourceAM(p, args.am);
+		await alterMDatasourceUM(p, args.um);
+		await alterMDatasourceREG(p, args.reg);
+
+		args.reg._connectionUrl = args.reg._connectionUrl.split('?')[0];
+		await alterRegistry(p, args.reg, _keymanager);
+
+		await alterUserMgt(p, true);
+	} catch (error) {
+		logger.error(error);
+	}
 }
 
 // configure all-in-one api manager node in is-km setup
@@ -1376,7 +1380,7 @@ async function configureISKMAIO(p, args) {
 		await alterMDatasourceAM(p, args.am);
 		await alterMDatasourceUM(p, args.um);
 		await alterMDatasourceREG(p, args.reg);
-		await alterRegistry(p, args.reg);
+		await alterRegistry(p, args.reg, _gateway);
 		await alterUserMgt(p);
 	} catch (error) {
 		logger.error(error);
@@ -1384,11 +1388,11 @@ async function configureISKMAIO(p, args) {
 }
 
 // alter registry.xml configurations
-async function alterRegistry(p, args) {
+async function alterRegistry(p, args, offset) {
 	try {
 		await parseXML(null, path.join(p, pRegistry)).then(registry => {
 			let doc = new libxmljs.Document(registry);
-			let registryElems = buildRegistry(doc, args);
+			let registryElems = buildRegistry(doc, args, offset);
 
 			registry.root()
 				.get('//*[local-name()="dbConfig"][@name="wso2registry"]')
@@ -1421,12 +1425,12 @@ async function alterRegistry(p, args) {
 }
 
 // build registry elements
-function buildRegistry(doc, args) {
+function buildRegistry(doc, args, offset = 0) {
 	let dbConfig = new libxmljs.Element(doc, 'dbConfig').attr({ name: 'govregistry' });
 	dbConfig
 		.node('dataSource', args._jndiName);
 
-	let remoteInstance = new libxmljs.Element(doc, 'remoteInstance').attr({ url: 'https://localhost:9443/registry' });
+	let remoteInstance = new libxmljs.Element(doc, 'remoteInstance').attr({ url: `https://localhost:${_p9443 + offset}/registry` });
 	remoteInstance
 		.node('id', 'gov')
 		.parent()
@@ -1483,8 +1487,8 @@ function buildISKMDoc(ocli) {
 	ocli.log('\n' + table.toString());
 	ocli.log(`
 Start the configured nodes in the following order
-	01. Key Manager
-	02. API Manager
+	01. API Manager
+	02. Key Manager
 `);
 }
 

@@ -1,9 +1,8 @@
 const { Command, flags } = require('@oclif/command');
 
-const { configure } = require('../../services/distribute/generic');
-
 const ISKM = require('../../services/distribute/am/is-km');
 const Distributed = require('../../services/distribute/am/distributed');
+const MultipleGW = require('../../services/distribute/am/multiple-gateway');
 
 class DistributeAMCommand extends Command {
 	async run() {
@@ -17,7 +16,7 @@ class DistributeAMCommand extends Command {
 
 		if (flags['multiple-gateway']) {
 			this.log(`${message}for multiple gateway setup`);
-			await configure(this, { 'multiple-gateway': true });
+			await MultipleGW.configure(this, { });
 		}
 		if (flags.distributed) {
 			this.log(`${message}for distributed setup`);
@@ -61,6 +60,7 @@ DistributeAMCommand.flags = {
 		hidden: false,
 		multiple: false,
 		required: false,
+		exclusive: ['multiple-gateway'],
 	}),
 	datasource: flags.string({
 		char: 'd',
@@ -69,6 +69,7 @@ DistributeAMCommand.flags = {
 		multiple: false,
 		required: true,
 		options: ['mssql', 'mysql', 'postgres'],
+		exclusive: ['multiple-gateway'],
 	}),
 	distributed: flags.boolean({
 		char: 'D',

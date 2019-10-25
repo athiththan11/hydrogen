@@ -18,14 +18,11 @@ exports.configure = async function (ocli, opts) {
 		if (opts.datasource === 'postgres')
 			confs = Postgres.getConfigs('am', opts);
 
-		configure(ocli, { 'is-km': true, args: confs }).then(() => {
+		await configure(ocli, { 'is-km': true, args: confs });
+		buildDriverDoc(ocli, opts.datasource);
+		if (opts.container) {
 			ocli.log('\n');
-			buildDriverDoc(ocli, opts.datasource);
-		}).then(() => {
-			if (opts.container) {
-				ocli.log('\n');
-				buildContainer(ocli, opts.datasource, 'am', opts);
-			}
-		});
+			buildContainer(ocli, opts.datasource, 'am', opts);
+		}
 	}
 };
