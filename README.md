@@ -16,7 +16,7 @@
 
 [![CircleCI](https://circleci.com/gh/athiththan11/hydrogen.svg?style=svg&circle-token=bf27e3287ab3c738b05245a3e62f57b965929aa1)](https://circleci.com/gh/athiththan11/hydrogen)
 
-[:construction: Work In Progress]
+[:rotating_light: :construction: Continuing with [Hydrogen Core](https://github.com/athiththan11/hydrogen-core) and [CLI](https://github.com/athiththan11/hydrogen-cli)]
 
 <br />
 
